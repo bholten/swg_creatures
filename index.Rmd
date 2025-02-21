@@ -1,0 +1,43 @@
+---
+title: "SWGEmu Creature Attributes"
+output: html_document
+---
+
+# 📊 Creature Database
+
+This table allows you to search and filter creatures based on their attributes.
+
+```{r setup, include=FALSE}
+library(DT)
+library(readr)
+library(dplyr)
+library(magrittr)
+
+df <- read_csv("data.csv")
+DT:::DT2BSClass(c('compact', 'cell-border'))
+```
+
+```{r, echo=FALSE}
+df_filtered <- df %>% 
+  select(-c("socialGroup", "faction", "range", "pvpBitmask", "creatureBitmask", 
+            "templates", "lootGroups", "conversationTemplate", 
+            "personalityStf", "optionsBitmask"))
+
+datatable(df_filtered, filter = "top",
+          extensions = c("Buttons", "ColReorder", "KeyTable"),
+          options = list(
+            dom = "Blfrtip",
+            buttons = c("copy", "csv", "excel"),
+            pageLength = 10,
+            autoWidth = FALSE,
+            scrollX = TRUE,
+            searchHighlight = TRUE,
+            lengthMenu = list(c(10, 25, 50, 100, -1),
+                              c("10", "25", "50", "100", "All")),
+            keys = TRUE,
+            colReorder = TRUE
+          ),
+          escape = FALSE
+        )
+```
+
