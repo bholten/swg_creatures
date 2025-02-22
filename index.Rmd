@@ -24,7 +24,8 @@ df <- read_csv("data.csv")
 DT:::DT2BSClass(c('compact', 'cell-border'))
 
 clean_df <- df %>% 
-  select(-c("range", # always 0
+  select(-c("objectName", # redundant with creature name
+            "range", # always 0
             "pvpBitmask", "creatureBitmask", # irrelevant
             "templates", # redundant
             "lootGroups", # TODO will add this later in another table
@@ -33,8 +34,7 @@ clean_df <- df %>%
             "secondarySpecialAttackOne", "secondarySpecialAttackTwo" # always the same as primary special attacks (I think these are just for the secondary weapon)
             )) %>%
   rename(specialAttackOne = primarySpecialAttackOne) %>% # friendlier renames
-  rename(specialAttackTwo = primarySpecialAttackTwo) %>%
-  mutate(objectName = str_extract(objectName, "(?<=:).*")) # drop the `@mob/creature_name:` part
+  rename(specialAttackTwo = primarySpecialAttackTwo)
 ```
 
 This data is scraped from Core3 commit `r git_commit`.
@@ -48,7 +48,7 @@ datatable(clean_df, filter = "top",
             pageLength = 10,
             autoWidth = TRUE,
             scrollX = FALSE,
-            searchHighlight = TRUE,
+            searchHighlight = FALSE,
             lengthMenu = list(c(10, 25, 50, 100, -1),
                               c("10", "25", "50", "100", "All")),
             keys = TRUE,

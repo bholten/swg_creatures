@@ -1,0 +1,19 @@
+name: Build and Deploy to GitHub Pages
+
+on:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Run Build in Prebuilt Docker Container
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/workspace -w /workspace \
+            ghcr.io/${{ github.repository_owner }}/r-lua-builder:latest make

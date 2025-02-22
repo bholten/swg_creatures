@@ -253,59 +253,60 @@ end
 -- Creatures
 --
 local headers = {
-      "objectName",
-      "socialGroup",
-      "faction",
-      "level",
-      "chanceHit",
-      "damageMin",
-      "damageMax",
-      "range",
-      "baseXp",
-      "baseHAM",
-      "armor",
-      "kinetic",
-      "kineticEff",
-      "energy",
-      "energyEff",
-      "blast",
-      "blastEff",
-      "heat",
-      "heatEff",
-      "cold",
-      "coldEff",
-      "electricity",
-      "electricityEff",
-      "acid",
-      "acidEff",
-      "stun",
-      "stunEff",
-      "lightsaber",
-      "lightSaberEff",
-      "meatType",
-      "meatAmount",
-      "hideType",
-      "hideAmount",
-      "boneType",
-      "boneAmount",
-      "milk",
-      "tamingChance",
-      "ferocity",
-      "pvpBitmask",
-      "creatureBitmask",
-      "diet",
-      "scale",
-      "templates",
-      "lootGroups",
-      "primaryWeapon",
-      "secondaryWeapon",
-      "primarySpecialAttackOne",
-      "primarySpecialAttackTwo",
-      "secondarySpecialAttackOne",
-      "secondarySpecialAttackTwo",
-      "conversationTemplate",
-      "personalityStf",
-      "optionsBitmask"
+   "creatureName",
+   "objectName",
+   "socialGroup",
+   "faction",
+   "level",
+   "chanceHit",
+   "damageMin",
+   "damageMax",
+   "range",
+   "baseXp",
+   "baseHAM",
+   "armor",
+   "kinetic",
+   "kineticEff",
+   "energy",
+   "energyEff",
+   "blast",
+   "blastEff",
+   "heat",
+   "heatEff",
+   "cold",
+   "coldEff",
+   "electricity",
+   "electricityEff",
+   "acid",
+   "acidEff",
+   "stun",
+   "stunEff",
+   "lightsaber",
+   "lightSaberEff",
+   "meatType",
+   "meatAmount",
+   "hideType",
+   "hideAmount",
+   "boneType",
+   "boneAmount",
+   "milk",
+   "tamingChance",
+   "ferocity",
+   "pvpBitmask",
+   "creatureBitmask",
+   "diet",
+   "scale",
+   "templates",
+   "lootGroups",
+   "primaryWeapon",
+   "secondaryWeapon",
+   "primarySpecialAttackOne",
+   "primarySpecialAttackTwo",
+   "secondarySpecialAttackOne",
+   "secondarySpecialAttackTwo",
+   "conversationTemplate",
+   "personalityStf",
+   "optionsBitmask"
 }
 
 function headers_to_csv()
@@ -354,7 +355,7 @@ function parse_special_attacks(creature)
    }
 end
 
-function convert_to_csv(creature)
+function convert_to_csv(creature_name, creature)
    local function escape_csv(val)
       if type(val) == "string" then
 	 return '"' .. val:gsub('"', '""') .. '"'
@@ -391,6 +392,7 @@ function convert_to_csv(creature)
    local special_attacks = parse_special_attacks(creature)
 
    local row = {
+      creature_name,
       flatten_table(creature["objectName"]),
       flatten_table(creature["socialGroup"]),
       flatten_table(creature["faction"]),
@@ -473,9 +475,9 @@ end
 function parse_creature_templates(creature_templates)
    local results = {}
    
-   for _, creature in pairs(creature_templates) do
+   for creature_name, creature in pairs(creature_templates) do
       if type(creature) == "table" and creature_is_mob_herb_or_carn(creature) then
-	 table.insert(results, convert_to_csv(creature))
+	 table.insert(results, convert_to_csv(creature_name, creature))
       end
    end
 
