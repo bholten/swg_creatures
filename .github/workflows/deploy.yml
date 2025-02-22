@@ -5,6 +5,11 @@ on:
     branches:
       - master
 
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -39,17 +44,6 @@ jobs:
         run: make
 
       - name: Deploy to GitHub Pages
-        uses: actions/upload-pages-artifact@v1
+        uses: JamesIves/github-pages-deploy-action@releases/v4
         with:
-          path: .  # Upload everything in the root (index.html)
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-
-    steps:
-      - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v1
+          folder: html
