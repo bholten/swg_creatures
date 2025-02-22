@@ -1,0 +1,60 @@
+---
+title: "SWGEmu Creature Attributes"
+output: html_document
+---
+
+# 📊 Creature Database
+
+This table allows you to search and filter creatures based on their attributes.
+
+You can download this data as a CSV or Excel spreadsheet.
+
+
+```{r setup, include=FALSE}
+library(DT)
+library(readr)
+library(dplyr)
+library(magrittr)
+library(stringr)
+library(glue)
+
+git_commit <- system("git -C submodules/Core3 rev-parse --short HEAD", intern = TRUE)
+
+df <- read_csv("data.csv")
+DT:::DT2BSClass(c('compact', 'cell-border'))
+
+clean_df <- df %>% 
+  select(-c("objectName", # redundant with creature name
+            "range", # always 0
+            "pvpBitmask", "creatureBitmask", # irrelevant
+            "templates", # redundant
+            "lootGroups", # TODO will add this later in another table
+            "conversationTemplate", # always null
+            "personalityStf", "optionsBitmask", # irrelevant
+            "secondarySpecialAttackOne", "secondarySpecialAttackTwo" # always the same as primary special attacks (I think these are just for the secondary weapon)
+            )) %>%
+  rename(specialAttackOne = primarySpecialAttackOne) %>% # friendlier renames
+  rename(specialAttackTwo = primarySpecialAttackTwo)
+```
+
+This data is scraped from Core3 commit `r git_commit`.
+
+```{r, echo=FALSE}
+datatable(clean_df, filter = "top",
+          extensions = c("Buttons", "ColReorder", "KeyTable"),
+          options = list(
+            dom = "Blfrtip",
+            buttons = c("copy", "csv", "excel"),
+            pageLength = 10,
+            autoWidth = TRUE,
+            scrollX = FALSE,
+            searchHighlight = FALSE,
+            lengthMenu = list(c(10, 25, 50, 100, -1),
+                              c("10", "25", "50", "100", "All")),
+            keys = TRUE,
+            colReorder = TRUE
+          ),
+          escape = FALSE
+        )
+```
+
