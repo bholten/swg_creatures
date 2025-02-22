@@ -252,7 +252,6 @@ end
 --
 -- Creatures
 --
-
 local headers = {
       "objectName",
       "socialGroup",
@@ -314,21 +313,22 @@ function headers_to_csv()
 end
 
 function parse_resist_array(arr)
-   local function resist_value(v)
+   local function resist_value(num)
+      local v = tonumber(num)
       local r = v
 
       if (v > 100) then
 	 r = v - 100
       end
-      
-      local er = v <= 100
-      
+
+      local er = v <= 100 and v > 0
+
       return {
 	 value = r,
 	 is_effective_resist = er
       }	 
    end
-   
+
    return {
       kinetic = resist_value(arr[1]),
       energy = resist_value(arr[2]),
@@ -345,7 +345,7 @@ end
 function parse_special_attacks(creature)
    local primary = creature["primaryAttacks"]
    local secondary = creature["secondaryAttacks"]
-   
+
    return {
       primarySpecialAttackOne = primary[1] and primary[1][1] or nil,
       primarySpecialAttackTwo = primary[2] and primary[2][1] or nil,
@@ -353,7 +353,6 @@ function parse_special_attacks(creature)
       secondarySpecialAttackTwo = secondary[2] and secondary[2][1] or nil
    }
 end
-
 
 function convert_to_csv(creature)
    local function escape_csv(val)
@@ -390,7 +389,7 @@ function convert_to_csv(creature)
 
    local resists = parse_resist_array(creature["resists"])
    local special_attacks = parse_special_attacks(creature)
-   
+
    local row = {
       flatten_table(creature["objectName"]),
       flatten_table(creature["socialGroup"]),
@@ -522,9 +521,9 @@ end
 
 function build_csv()
    results = {}
-   
+
    local templates = parse_creature_templates(safe_env.CreatureTemplates)
-   
+
    for _, line in ipairs(templates) do
       if line ~= nil then 
 	 table.insert(results, line)
@@ -532,7 +531,7 @@ function build_csv()
 	 print("Line was nil", file)
       end
    end
-   
+
    results = table.concat(results, "\n")
    return results
 end
@@ -540,12 +539,12 @@ end
 function write_to_file(filename, data)
    if data then
       local file = io.open(filename, "w")
-      
+
       if not file then
 	 print("Error: could not open file" .. filename)
 	 return false
       end
-   
+
       file:write(data)
       file:close()
       return true
@@ -556,17 +555,17 @@ end
 function build_creature_db(filename, planets)
    local hds = headers_to_csv()
    local results = {hds}
-   
+
    for _, planet in ipairs(planets) do
       build_creature_templates(planet)
    end
 
    local data = build_csv(planet)
    table.insert(results, data)
-   
+
    local csv = table.concat(results, "\n")
    local result = write_to_file(filename, csv)
-   
+
    if result then
       print("Successfully wrote file")
    else
@@ -589,11 +588,10 @@ local planets = {
 
 build_creature_db("data.csv", planets)
 
-
 -- Lairs
 function add_lair(filename)   
    local chunk, err = loadfile(filename, "t", safe_env)
-   
+
    if chunk then
       local success, errno = pcall(chunk)
 
@@ -605,18 +603,18 @@ function add_lair(filename)
       print("[add_lair] Successfully loaded script:", filename)
       return true
    end
-   
+
    print("Error loading script:", err)
    return false
 end
 
 function build_lair_templates(base_path)
    local files = get_lua_files(base_path)
-  
+
    for _, file in ipairs(files) do
       if file ~= nil then
 	 local r = add_lair(file)
-	 
+
 	 if not r then
 	    print("[build_lair_templates] Error loading script:", file)
 	 end
@@ -625,5 +623,4 @@ function build_lair_templates(base_path)
 end
 
 build_lair_templates("submodules/Core3/MMOCoreORB/bin/scripts/mobile/lair/creature_dynamic/corellia")
-
 
