@@ -7,23 +7,38 @@ output: html_document
 
 This table allows you to search and filter creatures based on their attributes.
 
+
 ```{r setup, include=FALSE}
 library(DT)
 library(readr)
 library(dplyr)
 library(magrittr)
+library(stringr)
+library(glue)
+
+git_commit <- system("git -C submodules/Core3 rev-parse --short HEAD", intern = TRUE)
 
 df <- read_csv("data.csv")
 DT:::DT2BSClass(c('compact', 'cell-border'))
+
+clean_df <- df %>% 
+  select(-c("range", # always 0
+            "pvpBitmask", "creatureBitmask", # irrelevant
+            "templates", # redundant
+            "lootGroups", # TODO will add this later in another table
+            "conversationTemplate", # always null
+            "personalityStf", "optionsBitmask", # irrelevant
+            "secondarySpecialAttackOne", "secondarySpecialAttackTwo" # always the same as primary special attacks (I think these are just for the secondary weapon)
+            )) %>%
+  rename(specialAttackOne = primarySpecialAttackOne) %>% # friendlier renames
+  rename(specialAttackTwo = primarySpecialAttackTwo) %>%
+  mutate(objectName = str_extract(objectName, "(?<=:).*")) # drop the `@mob/creature_name:` part
 ```
 
-```{r, echo=FALSE}
-df_filtered <- df %>% 
-  select(-c("socialGroup", "faction", "range", "pvpBitmask", "creatureBitmask", 
-            "templates", "lootGroups", "conversationTemplate", 
-            "personalityStf", "optionsBitmask"))
+This data is scraped from Core3 commit `r git_commit`.
 
-datatable(df_filtered, filter = "top",
+```{r, echo=FALSE}
+datatable(clean_df, filter = "top",
           extensions = c("Buttons", "ColReorder", "KeyTable"),
           options = list(
             dom = "Blfrtip",
