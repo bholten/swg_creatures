@@ -21,7 +21,13 @@ jobs:
           submodules: true
 
       - name: Install Lua
-        run: sudo apt-get install -y lua5.3
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lua5.3 liblua5.3-dev luarocks pandoc
+
+      - name: Install Lua dependencies
+        run: |
+          sudo luarocks install luafilesystem
 
       - name: Install R
         uses: r-lib/actions/setup-r@v2
@@ -29,7 +35,7 @@ jobs:
       - name: Restore R package cache
         uses: actions/cache@v3
         with:
-          path: ~/.local/share/renv
+          path: ~/.cache/R/renv
           key: ${{ runner.os }}-renv-${{ hashFiles('renv.lock') }}
           restore-keys: |
             ${{ runner.os }}-renv-
