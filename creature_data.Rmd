@@ -1,6 +1,9 @@
 ---
 title: "SWGEmu Creature Attributes"
-output: html_document
+output:
+  html_document:
+    includes:
+      after_body: footer.html
 ---
 
 # 📊 Creature Database
