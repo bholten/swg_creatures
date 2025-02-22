@@ -7,6 +7,8 @@ output: html_document
 
 This table allows you to search and filter creatures based on their attributes.
 
+You can download this data as a CSV or Excel spreadsheet.
+
 
 ```{r setup, include=FALSE}
 library(DT)
@@ -44,8 +46,8 @@ datatable(clean_df, filter = "top",
             dom = "Blfrtip",
             buttons = c("copy", "csv", "excel"),
             pageLength = 10,
-            autoWidth = FALSE,
-            scrollX = TRUE,
+            autoWidth = TRUE,
+            scrollX = FALSE,
             searchHighlight = TRUE,
             lengthMenu = list(c(10, 25, 50, 100, -1),
                               c("10", "25", "50", "100", "All")),
