@@ -13,9 +13,9 @@ local safe_env = {
    includeFile		= function(s) end,
    addTemplate		= function(s) end,
    addDressGroup	= function(s) end,
-   addWeapon		= function(s) end, 
+   addWeapon		= function(s) end,
    addOutfitGroup	= function(s) end,
-   addLairTemplate	= function(s) end,
+   --addLairTemplate	= function(s) end,
    CONVERSABLE		= 0,
    Lair			= {},
    -- object flags
@@ -168,7 +168,7 @@ local safe_env = {
       personalityStf		= "",
       optionsBitmask		= AIENABLED
    },
-   
+
    CreatureTemplates = {},
 
    deepcopy = function(t)
@@ -192,18 +192,22 @@ local safe_env = {
       buildingType	= "lair"
    },
 
-   LairTemplates = {}
+   LairTemplates = {},
+
+   SpawnGroups = {},
+
+   DestroyMissions = {}
 }
 
 function safe_env.merge(a, ...)
    local r = safe_env.deepcopy(a)
-   
+
    for j,k in ipairs({...}) do
       for i, v in pairs(k) do
 	 table.insert(r,v)
       end
    end
-   
+
    return r
 end
 
@@ -241,75 +245,159 @@ function safe_env.addLairTemplate(obj, file)
    safe_env.LairTemplates[file] = obj
 end
 
-function creature_is_mob_herb_or_carn(c)
-   if not c or not c.mobType then
-      return false
+function safe_env.addSpawnGrou(str, obj)
+   safe_env.SpawnGroups[str] = obj
+end
+
+function safe_env.addDestroyMissionGroup(str, obj)
+   safe_env.DestroyMissions[str] = obj
+end
+
+--
+-- Utils
+--
+
+function execute_script(filename)
+   local chunk, err = loadfile(filename, "t", safe_env)
+
+   if chunk then
+      local success, errno = pcall(chunk)
+
+      if not success then
+	 print("Error executing script:", filename, errno)
+	 return false
+      end
+
+      print("Successfully executed script:", filename)
+      return true
    end
-   
-   return c.mobType == safe_env.MOB_HERBIVORE or c.mobType == safe_env.MOB_CARNIVORE
+
+   print("Error loading script:", err)
+   return false
+end
+
+function get_lua_files(dir, file_list)
+   file_list = file_list or {}
+
+   for file in lfs.dir(dir) do
+      if file ~= "." and file ~= ".." then
+	 local full_path = dir .. "/" .. file
+	 local attr = lfs.attributes(full_path)
+
+	 if attr then
+	    if attr.mode == "directory" then
+	       get_lua_files(full_path, file_list)
+	    elseif file:match("%.lua") then
+	       table.insert(file_list, full_path)
+	    end
+	 else
+	    print("[get_lua_files] could not read file attributes:", file)
+	 end
+      end
+   end
+
+   return file_list
+end
+
+function execute_scripts(base_path)
+   local files = get_lua_files(base_path)
+
+   for _, file in ipairs(files) do
+      if file ~= nil then
+	 local r = execute_script(file)
+
+	 if not r then
+	    print("Error loading script:", file)
+	 end
+      end
+   end
+end
+
+function write_to_file(filename, data)
+   if data then
+      local file = io.open(filename, "w")
+
+      if not file then
+	 print("Error: could not open file" .. filename)
+	 return false
+      end
+
+      file:write(data)
+      file:close()
+      return true
+   end
+   return false
 end
 
 --
 -- Creatures
 --
-local headers = {
-   "creatureName",
-   "objectName",
-   "socialGroup",
-   "faction",
-   "level",
-   "chanceHit",
-   "damageMin",
-   "damageMax",
-   "range",
-   "baseXp",
-   "baseHAM",
-   "armor",
-   "kinetic",
-   "kineticEff",
-   "energy",
-   "energyEff",
-   "blast",
-   "blastEff",
-   "heat",
-   "heatEff",
-   "cold",
-   "coldEff",
-   "electricity",
-   "electricityEff",
-   "acid",
-   "acidEff",
-   "stun",
-   "stunEff",
-   "lightsaber",
-   "lightSaberEff",
-   "meatType",
-   "meatAmount",
-   "hideType",
-   "hideAmount",
-   "boneType",
-   "boneAmount",
-   "milk",
-   "tamingChance",
-   "ferocity",
-   "pvpBitmask",
-   "creatureBitmask",
-   "diet",
-   "scale",
-   "templates",
-   "lootGroups",
-   "primaryWeapon",
-   "secondaryWeapon",
-   "primarySpecialAttackOne",
-   "primarySpecialAttackTwo",
-   "secondarySpecialAttackOne",
-   "secondarySpecialAttackTwo",
-   "conversationTemplate",
-   "personalityStf",
-   "optionsBitmask"
-}
+function creature_is_mob_herb_or_carn(c)
+   if not c or not c.mobType then
+      return false
+   end
 
-function headers_to_csv()
+   return c.mobType == safe_env.MOB_HERBIVORE or c.mobType == safe_env.MOB_CARNIVORE
+end
+
+function creature_headers()
+   local headers = {
+      "creatureName",
+      "objectName",
+      "socialGroup",
+      "faction",
+      "level",
+      "chanceHit",
+      "damageMin",
+      "damageMax",
+      "range",
+      "baseXp",
+      "baseHAM",
+      "armor",
+      "kinetic",
+      "kineticEff",
+      "energy",
+      "energyEff",
+      "blast",
+      "blastEff",
+      "heat",
+      "heatEff",
+      "cold",
+      "coldEff",
+      "electricity",
+      "electricityEff",
+      "acid",
+      "acidEff",
+      "stun",
+      "stunEff",
+      "lightsaber",
+      "lightSaberEff",
+      "meatType",
+      "meatAmount",
+      "hideType",
+      "hideAmount",
+      "boneType",
+      "boneAmount",
+      "milk",
+      "tamingChance",
+      "ferocity",
+      "pvpBitmask",
+      "creatureBitmask",
+      "diet",
+      "scale",
+      "templates",
+      "lootGroups",
+      "primaryWeapon",
+      "secondaryWeapon",
+      "primarySpecialAttackOne",
+      "primarySpecialAttackTwo",
+      "secondarySpecialAttackOne",
+      "secondarySpecialAttackTwo",
+      "conversationTemplate",
+      "personalityStf",
+      "optionsBitmask"
+   }
+
    return table.concat(headers, ",")
 end
 
@@ -327,7 +415,7 @@ function parse_resist_array(arr)
       return {
 	 value = r,
 	 is_effective_resist = er
-      }	 
+      }
    end
 
    return {
@@ -421,7 +509,7 @@ function convert_to_csv(creature_name, creature)
       flatten_table(resists["stun"]["value"]),
       flatten_table(resists["stun"]["is_effective_resist"]),
       flatten_table(resists["lightsaber"]["value"]),
-      flatten_table(resists["lightsaber"]["is_special_resist"]),
+      flatten_table(resists["lightsaber"]["is_effective_resist"]),
       flatten_table(creature["meatType"]),
       flatten_table(creature["meatAmount"]),
       flatten_table(creature["hideType"]),
@@ -453,28 +541,9 @@ function convert_to_csv(creature_name, creature)
    return final
 end
 
-function add_creature_template(filename)   
-   local chunk, err = loadfile(filename, "t", safe_env)
-   
-   if chunk then
-      local success, errno = pcall(chunk)
-
-      if not success then
-	 print("[add_creature_template] Error running script:", filename, errno)
-	 return false
-      end
-
-      print("[add_creature_template] Successfully loaded script:", filename)
-      return true
-   end
-   
-   print("Error loading script:", err)
-   return false
-end
-
 function parse_creature_templates(creature_templates)
    local results = {}
-   
+
    for creature_name, creature in pairs(creature_templates) do
       if type(creature) == "table" and creature_is_mob_herb_or_carn(creature) then
 	 table.insert(results, convert_to_csv(creature_name, creature))
@@ -484,50 +553,13 @@ function parse_creature_templates(creature_templates)
    return results
 end
 
-function get_lua_files(dir, file_list)
-   file_list = file_list or {}
-
-   for file in lfs.dir(dir) do
-      if file ~= "." and file ~= ".." then
-	 local full_path = dir .. "/" .. file
-	 local attr = lfs.attributes(full_path)
-
-	 if attr then 
-	    if attr.mode == "directory" then
-	       get_lua_files(full_path, file_list)
-	    elseif file:match("%.lua") then
-	       table.insert(file_list, full_path)
-	    end
-	 else
-	    print("[get_lua_files] could not read file attributes:", file)
-	 end
-      end
-   end
-
-   return file_list
-end
-
-function build_creature_templates(base_path)
-   local files = get_lua_files(base_path)
-  
-   for _, file in ipairs(files) do
-      if file ~= nil then
-	 local r = add_creature_template(file)
-	 
-	 if not r then
-	    print("[build_csv] Error loading script:", file)
-	 end
-      end
-   end
-end
-
 function build_csv()
    results = {}
 
    local templates = parse_creature_templates(safe_env.CreatureTemplates)
 
    for _, line in ipairs(templates) do
-      if line ~= nil then 
+      if line ~= nil then
 	 table.insert(results, line)
       else
 	 print("Line was nil", file)
@@ -538,28 +570,12 @@ function build_csv()
    return results
 end
 
-function write_to_file(filename, data)
-   if data then
-      local file = io.open(filename, "w")
-
-      if not file then
-	 print("Error: could not open file" .. filename)
-	 return false
-      end
-
-      file:write(data)
-      file:close()
-      return true
-   end
-   return false
-end
-
 function build_creature_db(filename, planets)
-   local hds = headers_to_csv()
+   local hds = creature_headers()
    local results = {hds}
 
    for _, planet in ipairs(planets) do
-      build_creature_templates(planet)
+      execute_scripts(planet)
    end
 
    local data = build_csv(planet)
@@ -575,7 +591,7 @@ function build_creature_db(filename, planets)
    end
 end
 
-local planets = {
+local mobile_planets = {
    "submodules/Core3/MMOCoreORB/bin/scripts/mobile/corellia",
    "submodules/Core3/MMOCoreORB/bin/scripts/mobile/dathomir",
    "submodules/Core3/MMOCoreORB/bin/scripts/mobile/dantooine",
@@ -588,41 +604,97 @@ local planets = {
    "submodules/Core3/MMOCoreORB/bin/scripts/mobile/yavin4"
 }
 
-build_creature_db("data.csv", planets)
+build_creature_db("creatures.csv", mobile_planets)
 
 -- Lairs
-function add_lair(filename)   
-   local chunk, err = loadfile(filename, "t", safe_env)
+local creature_dynamic_planets = {
+   "submodules/Core3/MMOCoreORB/bin/scripts/mobile/lair/creature_dynamic/corellia",
+   "submodules/Core3/MMOCoreORB/bin/scripts/mobile/lair/creature_dynamic/dathomir",
+   "submodules/Core3/MMOCoreORB/bin/scripts/mobile/lair/creature_dynamic/dantooine",
+   "submodules/Core3/MMOCoreORB/bin/scripts/mobile/lair/creature_dynamic/endor",
+   "submodules/Core3/MMOCoreORB/bin/scripts/mobile/lair/creature_dynamic/lok",
+   "submodules/Core3/MMOCoreORB/bin/scripts/mobile/lair/creature_dynamic/naboo",
+   "submodules/Core3/MMOCoreORB/bin/scripts/mobile/lair/creature_dynamic/rori",
+   "submodules/Core3/MMOCoreORB/bin/scripts/mobile/lair/creature_dynamic/talus",
+   "submodules/Core3/MMOCoreORB/bin/scripts/mobile/lair/creature_dynamic/tatooine",
+   "submodules/Core3/MMOCoreORB/bin/scripts/mobile/lair/creature_dynamic/yavin4"
+}
 
-   if chunk then
-      local success, errno = pcall(chunk)
+local creature_lair_planets = {
+   "submodules/Core3/MMOCoreORB/bin/scripts/mobile/lair/creature_lair/corellia",
+   "submodules/Core3/MMOCoreORB/bin/scripts/mobile/lair/creature_lair/dathomir",
+   "submodules/Core3/MMOCoreORB/bin/scripts/mobile/lair/creature_lair/dantooine",
+   "submodules/Core3/MMOCoreORB/bin/scripts/mobile/lair/creature_lair/endor",
+   "submodules/Core3/MMOCoreORB/bin/scripts/mobile/lair/creature_lair/lok",
+   "submodules/Core3/MMOCoreORB/bin/scripts/mobile/lair/creature_lair/naboo",
+   "submodules/Core3/MMOCoreORB/bin/scripts/mobile/lair/creature_lair/rori",
+   "submodules/Core3/MMOCoreORB/bin/scripts/mobile/lair/creature_lair/talus",
+   "submodules/Core3/MMOCoreORB/bin/scripts/mobile/lair/creature_lair/tatooine",
+   "submodules/Core3/MMOCoreORB/bin/scripts/mobile/lair/creature_lair/yavin4"
+}
 
-      if not success then
-	 print("[add_lair] Error running script:", filename, errno)
-	 return false
-      end
+function build_lair_tables()
+   local lair_rows = {"lairName,spawnLimit,buildingsVeryEasy,buildingsEasy,buildingsMedium,buildingsHard,buildingsVeryHard"}
+   local creature_rows = {"lairName,creatureName,type,count"}
 
-      print("[add_lair] Successfully loaded script:", filename)
-      return true
+   for _, dynamic in ipairs(creature_dynamic_planets) do
+      print("dynamic", dynamic)
+      execute_scripts(dynamic)
    end
 
-   print("Error loading script:", err)
-   return false
-end
+   for _, lair in ipairs(creature_lair_planets) do
+      print("lair", lair)
+      execute_scripts(lair)
+   end
 
-function build_lair_templates(base_path)
-   local files = get_lua_files(base_path)
+   for lair_template, lair_name in pairs(safe_env.LairTemplates) do
+      local lair_v = {
+	 lair_name,
+	 lair_template["spawnLimit"],
+	 lair_template["buildingsVeryEasy"][1], -- frankly, don't care about this data anyway
+	 lair_template["buildingsEasy"][1],
+	 lair_template["buildingsMedium"][1],
+	 lair_template["buildingsHard"][1],
+	 lair_template["buildingsVeryHard"][1]
+      }
+      print("lair value:", lair_v[1], lair_v[2])
+      local lair_row = table.concat(lair_v, ",")
+      table.insert(lair_rows, lair_row)
 
-   for _, file in ipairs(files) do
-      if file ~= nil then
-	 local r = add_lair(file)
+      local mobiles = lair_template["mobiles"]
 
-	 if not r then
-	    print("[build_lair_templates] Error loading script:", file)
-	 end
+      for _, mobile in ipairs(mobiles) do
+	 local mobile_v = {
+	    lair_name,
+	    mobile[1],
+	    "mobile",
+	    mobile[2]
+	 }
+	 print("mobile value:", mobile_v[1], mobile[2], mobile[3], mobile[4])
+	 table.insert(creature_rows, table.concat(mobile_v, ","))
+      end
+
+      local boss_mobiles = lair_template["bossMobiles"]
+
+      for _, boss in ipairs(boss_mobiles) do
+	 local boss_v = {
+	    lair_name,
+	    boss[1],
+	    "boss",
+	    boss[2]
+	 }
+	 print("boss value:", boss_v[1], boss[2], boss[3], boss[4])
+	 table.insert(creature_rows, table.concat(boss_v, ","))
       end
    end
+
+
+   local lair_results = table.concat(lair_rows, "\n")
+   local creature_results = table.concat(creature_rows, "\n")
+
+   write_to_file("lairs.csv", lair_results)
+   write_to_file("lair_mobiles.csv", creature_results)
 end
 
-build_lair_templates("submodules/Core3/MMOCoreORB/bin/scripts/mobile/lair/creature_dynamic/corellia")
 
+build_lair_tables()

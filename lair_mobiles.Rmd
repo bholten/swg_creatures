@@ -1,14 +1,14 @@
 ---
-title: "SWGEmu Creature Attributes"
+title: "SWGEmu Lair Mobiles"
 output:
   html_document:
     includes:
       after_body: footer.html
 ---
 
-# 📊 Creature Database
+# 📊 Lair Mobile Data
 
-This table allows you to search and filter creatures based on their attributes.
+This table allows you to associate creatures ("mobiles") with what lairs they are associated with.
 
 You can download this data as a CSV or Excel spreadsheet.
 
@@ -22,28 +22,14 @@ library(glue)
 
 git_commit <- system("git -C submodules/Core3 rev-parse --short HEAD", intern = TRUE)
 
-df <- read_csv("creatures.csv")
+df <- read_csv("lair_mobiles.csv")
 DT:::DT2BSClass(c('compact', 'cell-border'))
-
-clean_df <- df %>% 
-  select(-c("objectName", # redundant with creature name
-            "faction", # redundant with social group
-            "range", # always 0
-            "pvpBitmask", "creatureBitmask", # irrelevant
-            "templates", # redundant
-            "lootGroups", # TODO will add this later in another table
-            "conversationTemplate", # always null
-            "personalityStf", "optionsBitmask", # irrelevant
-            "secondarySpecialAttackOne", "secondarySpecialAttackTwo" # always the same as primary special attacks (I think these are just for the secondary weapon)
-            )) %>%
-  rename(specialAttackOne = primarySpecialAttackOne) %>% # friendlier renames
-  rename(specialAttackTwo = primarySpecialAttackTwo)
 ```
 
 This data is scraped from Core3 commit `r git_commit`.
 
 ```{r, echo=FALSE}
-datatable(clean_df, filter = "top",
+datatable(df, filter = "top",
           extensions = c("Buttons", "ColReorder", "KeyTable"),
           options = list(
             dom = "Blfrtip",
