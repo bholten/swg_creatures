@@ -798,7 +798,7 @@ local planet_region_dir = "submodules/Core3/MMOCoreORB/bin/scripts/managers/plan
 function build_planet_regions()
    execute_scripts(planet_region_dir)
 
-   local headers = "planet,name,zoneType,x,y,x2,y2,r,r1,r2,zoneBitmask"
+   local headers = "planet,name,spawnZone,zoneType,x,y,x2,y2,r,r1,r2,zoneBitmask"
 
    local results = {headers}
 
@@ -864,9 +864,21 @@ function build_planet_regions()
 	 end
       end
 
-      local bitmask_str = table.concat(z_flag_result, " + ")
+     local bitmask_str = table.concat(z_flag_result, " + ")
 
-      return {planet, name, zoneType, x, y, x2, y2, r, r1, r2, bitmask_str}
+     local results = {}
+
+      local spawn_zones = entry[6]
+
+      if spawn_zones ~= nil then
+	 for _, z in ipairs(spawn_zones) do
+	    table.insert(results, {planet, name, z, zoneType, x, y, x2, y2, r, r1, r2, bitmask_str})
+	 end
+      else
+	 table.insert(results, {planet, name, "", zoneType, x, y, x2, y2, r, r1, r2, bitmask_str})
+      end
+
+      return results
    end
 
    local region_map = {
@@ -885,9 +897,12 @@ function build_planet_regions()
 
    for planet, regions in pairs(region_map) do
       for _, zone in ipairs(regions) do
-	 local row = parse_spawn_zone(planet, zone)
-	 local csv_value = table.concat(row, ",")
-	 table.insert(results, csv_value)
+	 local rows = parse_spawn_zone(planet, zone)
+	 for _, row in ipairs(rows) do
+	    local csv_value = table.concat(row, ",")
+	    print(csv_value)
+	    table.insert(results, csv_value)
+	 end
       end
    end
 
