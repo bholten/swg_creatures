@@ -14,13 +14,27 @@ This data is very lightly processed -- for example, Core3 uses a convention wher
 
 See the [GitHub repository](https://github.com/bholten/swg_creatures) for full details.
 
-# Data
+# Raw Data
 
-- [Raw Creature Data](creature_data.html)
-- Work in Progress - Creature Spawn Location Data
-- Work in Progress - Planetary Maps
+This is raw data from the Core3 mobile scripts. It is very lightly cleaned and intended to import into Excel, Google Docs, RStudio, and so on for your own purposes. It is also appropriate for importing into a database, such as SQLite. You can think of these as the raw SQL tables that a web app might be based upon.
+
+- [Creature Data](creature_data.html) - raw creature attributes
+- [Lair Data](lairs.html) - attributes of every lair in Core3
+- [Lair Mobiles](lair_mobiles.html) - associates creatures with lairs, and how they spawn (mobile or boss)
+- [Spawn Groups](lair_spawn_groups.html) - associates the lair with the spawn zones in which it can spawn
+- [Spawn Zones](zones.html) - raw spawn zone data
+
+# Enriched Data
+
+- Work in Progress - Enriched Creature Data
+- Work in Progress - Spawn Zone Maps
+- Work in Progress - Data Workbench
 - Work in Progress - Loot Tables
 - Work in Progress - DNA Samples
+
+# Historical Data
+
+- Work in Progress - Parsed and Searchable furrycat data
 
 ## Other Work
 

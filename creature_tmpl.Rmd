@@ -1,0 +1,31 @@
+---
+title: "Creature Report: `r params$creature_name`"
+output: html_document
+params:
+  creature_name: squall
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(magrittr)
+library(readr)
+library(jsonlite)
+```
+
+```{r, echo=FALSE}
+creatures <- read_csv("creatures.csv")
+lair_mobiles <- read_csv("lair_mobiles.csv")
+lairs <- read_csv("lairs.csv")
+lair_spawn_groups <- read_csv("lair_spawn_groups.csv")
+
+creatures_denorm <- lair_mobiles %>%
+  left_join(lairs, by = "lairName") %>%
+  left_join(lair_spawn_groups, by = c("lairName" = "lairTemplateName")) %>%
+  left_join(creatures, by = "creatureName") %>%
+  filter(creatureName == params$creature_name)
+```
+
+```{r}
+creatures_denorm %>%
+  toJSON(pretty = TRUE, auto_unbox = TRUE)
+```
