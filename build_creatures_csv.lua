@@ -245,7 +245,7 @@ function safe_env.addLairTemplate(obj, file)
    safe_env.LairTemplates[file] = obj
 end
 
-function safe_env.addSpawnGrou(str, obj)
+function safe_env.addSpawnGroup(str, obj)
    safe_env.SpawnGroups[str] = obj
 end
 
@@ -606,7 +606,9 @@ local mobile_planets = {
 
 build_creature_db("creatures.csv", mobile_planets)
 
+--
 -- Lairs
+--
 local creature_dynamic_planets = {
    "submodules/Core3/MMOCoreORB/bin/scripts/mobile/lair/creature_dynamic/corellia",
    "submodules/Core3/MMOCoreORB/bin/scripts/mobile/lair/creature_dynamic/dathomir",
@@ -638,12 +640,10 @@ function build_lair_tables()
    local creature_rows = {"lairName,creatureName,type,count"}
 
    for _, dynamic in ipairs(creature_dynamic_planets) do
-      print("dynamic", dynamic)
       execute_scripts(dynamic)
    end
 
    for _, lair in ipairs(creature_lair_planets) do
-      print("lair", lair)
       execute_scripts(lair)
    end
 
@@ -657,7 +657,6 @@ function build_lair_tables()
 	 lair_template["buildingsHard"][1],
 	 lair_template["buildingsVeryHard"][1]
       }
-      print("lair value:", lair_v[1], lair_v[2])
       local lair_row = table.concat(lair_v, ",")
       table.insert(lair_rows, lair_row)
 
@@ -683,7 +682,6 @@ function build_lair_tables()
 	    "boss",
 	    boss[2]
 	 }
-	 print("boss value:", boss_v[1], boss[2], boss[3], boss[4])
 	 table.insert(creature_rows, table.concat(boss_v, ","))
       end
    end
@@ -698,3 +696,80 @@ end
 
 
 build_lair_tables()
+
+--
+-- Spawn Groups and Destroy Missions
+--
+local spawn_zones_planets = {
+   "submodules/Core3/MMOCoreORB/bin/scripts/mobile/spawn/corellia",
+   "submodules/Core3/MMOCoreORB/bin/scripts/mobile/spawn/dathomir",
+   "submodules/Core3/MMOCoreORB/bin/scripts/mobile/spawn/dantooine",
+   "submodules/Core3/MMOCoreORB/bin/scripts/mobile/spawn/endor",
+   "submodules/Core3/MMOCoreORB/bin/scripts/mobile/spawn/lok",
+   "submodules/Core3/MMOCoreORB/bin/scripts/mobile/spawn/naboo",
+   "submodules/Core3/MMOCoreORB/bin/scripts/mobile/spawn/rori",
+   "submodules/Core3/MMOCoreORB/bin/scripts/mobile/spawn/talus",
+   "submodules/Core3/MMOCoreORB/bin/scripts/mobile/spawn/tatooine",
+   "submodules/Core3/MMOCoreORB/bin/scripts/mobile/spawn/yavin4"
+}
+
+function build_spawn_groups()
+   local spawn_groups = {"spawnGroupName,minLevelCeiling,lairTemplateName,spawnLimit,minDifficulty,maxDifficulty,numberToSpawn,weighting,size"}
+
+   for _, planet_spawns in ipairs(spawn_zones_planets) do
+      execute_scripts(planet_spawns)
+   end
+
+   local planet_missions = "submodules/Core3/MMOCoreORB/bin/scripts/mobile/spawn/destroy_mission"
+   execute_scripts(planet_missions)
+
+   for spawn_group_name, spawn_group in pairs(safe_env.SpawnGroups) do
+      local lair_spawns = spawn_group["lairSpawns"]
+
+      for _, lair_spawn in ipairs(lair_spawns) do
+	 local lair_spawns_row = {
+	    spawn_group_name,
+	    "",
+	    lair_spawn["lairTemplateName"],
+	    lair_spawn["spawnLimit"],
+	    lair_spawn["minDifficulty"],
+	    lair_spawn["maxDifficulty"],
+	    lair_spawn["numberToSpawn"],
+	    lair_spawn["weighting"],
+	    lair_spawn["size"]
+	 }
+	 local lair_spawns_txt = table.concat(lair_spawns_row, ",")
+
+	 table.insert(spawn_groups, lair_spawns_txt)
+      end
+   end
+
+   for destroy_mission_name, destroy_mission in pairs(safe_env.DestroyMissions) do
+      local min_level_ceiling = destroy_mission["minLevelCeiling"]
+      local lair_spawns = destroy_mission["lairSpawns"]
+      print("Destroy mission:", destroy_mission_name)
+      print("Min Level:", min_level_ceiling)
+
+      for _, lair_spawn in ipairs(lair_spawns) do
+	 local lair_spawns_row = {
+	    destroy_mission_name,
+	    min_level_ceiling,
+	    lair_spawn["lairTemplateName"],
+	    lair_spawn["minDifficulty"],
+	    lair_spawn["maxDifficulty"],
+	    "",
+	    "",
+	    lair_spawn["size"]
+	 }
+	 local lair_spawns_txt = table.concat(lair_spawns_row, ",")
+	 print(lair_spawns_txt)
+	 table.insert(spawn_groups, lair_spawns_txt)
+      end
+   end
+
+   local lair_spawn_groups = table.concat(spawn_groups, "\n")
+   write_to_file("lair_spawn_groups.csv", lair_spawn_groups)
+end
+
+
+build_spawn_groups()

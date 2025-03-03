@@ -1,0 +1,49 @@
+---
+title: "SWGEmu Lair Spawn Groups"
+output:
+  html_document:
+    includes:
+      after_body: footer.html
+---
+
+# 📊 Lair Mobile Data
+
+This table allows you to associate creatures ("mobiles") with what lairs they are associated with.
+
+You can download this data as a CSV or Excel spreadsheet.
+
+```{r setup, include=FALSE, echo=FALSE}
+library(DT)
+library(readr)
+library(dplyr)
+library(magrittr)
+library(stringr)
+library(glue)
+
+git_commit <- system("git -C submodules/Core3 rev-parse --short HEAD", intern = TRUE)
+
+df <- read_csv("lair_spawn_groups.csv")
+DT:::DT2BSClass(c('compact', 'cell-border'))
+```
+
+This data is scraped from Core3 commit `r git_commit`.
+
+```{r, echo=FALSE}
+datatable(df, filter = "top",
+          extensions = c("Buttons", "ColReorder", "KeyTable"),
+          options = list(
+            dom = "Blfrtip",
+            buttons = c("copy", "csv", "excel"),
+            pageLength = 10,
+            autoWidth = FALSE, # turning these off because the table is too wide and break Firefox
+            scrollX = FALSE,   # ^ ditto
+            searchHighlight = FALSE,
+            lengthMenu = list(c(10, 25, 50, 100, -1),
+                              c("10", "25", "50", "100", "All")),
+            keys = TRUE,
+            colReorder = TRUE
+          ),
+          escape = FALSE
+        )
+```
+

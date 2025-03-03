@@ -19,6 +19,7 @@ See the [GitHub repository](https://github.com/bholten/swg_creatures) for full d
 - [Raw Creature Data](creature_data.html)
 - [Lair Data](lairs.html)
 - [Lair Mobiles](lair_mobiles.html)
+- [Spawn Groups](lair_spawn_groups.html)
 - Work in Progress - Loot Tables
 - Work in Progress - DNA Samples
 
