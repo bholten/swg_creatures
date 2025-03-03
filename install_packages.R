@@ -4,8 +4,7 @@ required_packages <- c(
   "dplyr",
   "magrittr",
   "stringr",
-  "glue",
-  "jsonlite"
+  "glue"
 )
 new_packages <- required_packages[!(required_packages %in% installed.packages()[,"Package"])]
 if (length(new_packages)) install.packages(new_packages)

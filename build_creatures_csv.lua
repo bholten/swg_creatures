@@ -15,7 +15,7 @@ local safe_env = {
    addDressGroup	= function(s) end,
    addWeapon		= function(s) end,
    addOutfitGroup	= function(s) end,
-   --addLairTemplate	= function(s) end,
+   require              = function(s) end,
    CONVERSABLE		= 0,
    Lair			= {},
    -- object flags
@@ -93,6 +93,28 @@ local safe_env = {
    MOB_DROID		= 4,
    MOB_ANDROID		= 5,
    MOB_VEHICLE		= 6,
+   -- regions
+   UNDEFINEDAREA	= 0x000000,
+   SPAWNAREA		= 0x000001,
+   NOSPAWNAREA		= 0x000002,
+   WORLDSPAWNAREA	= 0x000004,
+   NOWORLDSPAWNAREA	= 0x000008,
+   NOBUILDZONEAREA	= 0x000010,
+   CAMPINGAREA		= 0x000020,
+   CITY			= 0x000040,
+   NAVAREA		= 0x000080,
+   NAMEDREGION		= 0x000100,
+   LOCKEDAREA		= 0x000200,
+   NOCOMBATAREA		= 0x000400,
+   NODUELAREA		= 0x000800,
+   PVPAREA		= 0x001000,
+   OVERTAREA		= 0x002000,
+   REBELAREA		= 0x004000,
+   IMPERIALAREA		= 0x008000,
+   NOPETAREA		= 0x010000,
+   CIRCLE		= 1,
+   RECTANGLE		= 2,
+   RING			= 3,
    -- constants
    brawlernovice	= { {"melee1hlunge1",""},{"melee2hlunge1",""},{"polearmlunge1",""},{"unarmedlunge1",""} },
    marksmannovice	= { {"overchargeshot1",""},{"pointblanksingle1",""},{"pointblankarea1",""} },
@@ -747,8 +769,6 @@ function build_spawn_groups()
    for destroy_mission_name, destroy_mission in pairs(safe_env.DestroyMissions) do
       local min_level_ceiling = destroy_mission["minLevelCeiling"]
       local lair_spawns = destroy_mission["lairSpawns"]
-      print("Destroy mission:", destroy_mission_name)
-      print("Min Level:", min_level_ceiling)
 
       for _, lair_spawn in ipairs(lair_spawns) do
 	 local lair_spawns_row = {
@@ -762,7 +782,6 @@ function build_spawn_groups()
 	    lair_spawn["size"]
 	 }
 	 local lair_spawns_txt = table.concat(lair_spawns_row, ",")
-	 print(lair_spawns_txt)
 	 table.insert(spawn_groups, lair_spawns_txt)
       end
    end
@@ -773,3 +792,107 @@ end
 
 
 build_spawn_groups()
+
+local planet_region_dir = "submodules/Core3/MMOCoreORB/bin/scripts/managers/planet"
+
+function build_planet_regions()
+   execute_scripts(planet_region_dir)
+
+   local headers = "planet,name,zoneType,x,y,x2,y2,r,r1,r2,zoneBitmask"
+
+   local results = {headers}
+
+   local parse_spawn_zone = function(planet, entry)
+      local name = entry[1]
+      local x = entry[2]
+      local y = entry[3]
+      local shape = entry[4]
+      local bitmask = entry[5]
+      local x2 = ""
+      local y2 = ""
+      local r = ""
+      local r1 = ""
+      local r2 = ""
+      local zoneType = ""
+      local regionType = ""
+
+      if shape[1] == safe_env.RECTANGLE then
+	 zoneType = "rectangle"
+	 x2 = shape[2]
+	 y2 = shape[3]
+
+      elseif shape[1] == safe_env.CIRCLE then
+	 zoneType = "circle"
+	 r = shape[2]
+
+      elseif shape[1] == safe_env.RING then
+	 zoneType = "ring"
+	 r1 = shape[2]
+	 r2 = shape[3]
+      else
+	 error("Bad shape type")
+      end
+
+
+      -- zone flags
+      local zone_flags = {
+	 UNDEFINEDAREA = 0x000000,
+	 SPAWNAREA = 0x000001,
+	 NOSPAWNAREA = 0x000002,
+	 WORLDSPAWNAREA = 0x000004,
+	 NOWORLDSPAWNAREA = 0x000008,
+	 NOBUILDZONEAREA = 0x000010,
+	 CAMPINGAREA = 0x000020,
+	 CITY = 0x000040,
+	 NAVAREA = 0x000080,
+	 NAMEDREGION = 0x000100,
+	 LOCKEDAREA = 0x000200,
+	 NOCOMBATAREA = 0x000400,
+	 NODUELAREA = 0x000800,
+	 PVPAREA = 0x001000,
+	 OVERTAREA = 0x002000,
+	 REBELAREA = 0x004000,
+	 IMPERIALAREA = 0x008000,
+	 NOPETAREA = 0x010000
+      }
+
+      local z_flag_result = {}
+
+      for name, value in pairs(zone_flags) do
+	 if (bitmask & value) ~= 0 then
+	    table.insert(z_flag_result, name)
+	 end
+      end
+
+      local bitmask_str = table.concat(z_flag_result, " + ")
+
+      return {planet, name, zoneType, x, y, x2, y2, r, r1, r2, bitmask_str}
+   end
+
+   local region_map = {
+      corellia = safe_env.corellia_regions,
+      dathomir = safe_env.dathomir_regions,
+      dantooine = safe_env.dantooine_regions,
+      endor = safe_env.endor_regions,
+      lok = safe_env.lok_regions,
+      naboo = safe_env.naboo_regions,
+      rori = safe_env.rori_regions,
+      talus = safe_env.talus_regions,
+      tatooine = safe_env.tatooine_regions,
+      yavin = safe_env.yavin4_regions
+   }
+
+
+   for planet, regions in pairs(region_map) do
+      for _, zone in ipairs(regions) do
+	 local row = parse_spawn_zone(planet, zone)
+	 local csv_value = table.concat(row, ",")
+	 table.insert(results, csv_value)
+      end
+   end
+
+   local csv = table.concat(results, "\n")
+   write_to_file("zones.csv", csv)
+end
+
+build_planet_regions()
