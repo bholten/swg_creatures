@@ -226,7 +226,7 @@ function safe_env.merge(a, ...)
 
    for j,k in ipairs({...}) do
       for i, v in pairs(k) do
-	 table.insert(r,v)
+         table.insert(r,v)
       end
    end
 
@@ -244,7 +244,7 @@ function safe_env.CreatureTemplates:addCreatureTemplate(obj, file)
       print("[addCreatureTemplate] Error: nil template specified for", file)
    else
       if self[file] then
-	 print("[addCreatureTemplate] WARNING: DUPLICATE ENTRY", file)
+         print("[addCreatureTemplate] WARNING: DUPLICATE ENTRY", file)
       end
 
       self[file] = obj
@@ -286,8 +286,8 @@ function execute_script(filename)
       local success, errno = pcall(chunk)
 
       if not success then
-	 print("Error executing script:", filename, errno)
-	 return false
+         print("Error executing script:", filename, errno)
+         return false
       end
 
       print("Successfully executed script:", filename)
@@ -303,18 +303,18 @@ function get_lua_files(dir, file_list)
 
    for file in lfs.dir(dir) do
       if file ~= "." and file ~= ".." then
-	 local full_path = dir .. "/" .. file
-	 local attr = lfs.attributes(full_path)
+         local full_path = dir .. "/" .. file
+         local attr = lfs.attributes(full_path)
 
-	 if attr then
-	    if attr.mode == "directory" then
-	       get_lua_files(full_path, file_list)
-	    elseif file:match("%.lua") then
-	       table.insert(file_list, full_path)
-	    end
-	 else
-	    print("[get_lua_files] could not read file attributes:", file)
-	 end
+         if attr then
+            if attr.mode == "directory" then
+               get_lua_files(full_path, file_list)
+            elseif file:match("%.lua") then
+               table.insert(file_list, full_path)
+            end
+         else
+            print("[get_lua_files] could not read file attributes:", file)
+         end
       end
    end
 
@@ -326,11 +326,11 @@ function execute_scripts(base_path)
 
    for _, file in ipairs(files) do
       if file ~= nil then
-	 local r = execute_script(file)
+         local r = execute_script(file)
 
-	 if not r then
-	    print("Error loading script:", file)
-	 end
+         if not r then
+            print("Error loading script:", file)
+         end
       end
    end
 end
@@ -340,8 +340,8 @@ function write_to_file(filename, data)
       local file = io.open(filename, "w")
 
       if not file then
-	 print("Error: could not open file" .. filename)
-	 return false
+         print("Error: could not open file" .. filename)
+         return false
       end
 
       file:write(data)
@@ -429,14 +429,14 @@ function parse_resist_array(arr)
       local r = v
 
       if (v > 100) then
-	 r = v - 100
+     r = v - 100
       end
 
       local er = v <= 100 and v > 0
 
       return {
-	 value = r,
-	 is_effective_resist = er
+     value = r,
+     is_effective_resist = er
       }
    end
 
@@ -468,31 +468,31 @@ end
 function convert_to_csv(creature_name, creature)
    local function escape_csv(val)
       if type(val) == "string" then
-	 return '"' .. val:gsub('"', '""') .. '"'
+         return '"' .. val:gsub('"', '""') .. '"'
       elseif type(val) == "number" then
-	 return tostring(val)
+         return tostring(val)
       elseif type(val) == "table" then
-	 return "[TABLE]"
+         return "[TABLE]"
       elseif type(val) == "boolean" then
-	 return tostring(val)
+         return tostring(val)
       else
-	 return ""
+         return ""
       end
    end
 
    local function flatten_table(val)
       if type(val) ~= "table" then
-	 return escape_csv(val)
+         return escape_csv(val)
       end
 
       local result = {}
 
       for _, entry in pairs(val) do
-	 if type(entry) == "table" then
-	    table.insert(result, table.concat(entry, ":"))
-	 else
-	    table.insert(result, tostring(entry))
-	 end
+     if type(entry) == "table" then
+        table.insert(result, table.concat(entry, ":"))
+     else
+        table.insert(result, tostring(entry))
+     end
       end
 
       return escape_csv(table.concat(result, "|"))
@@ -568,7 +568,7 @@ function parse_creature_templates(creature_templates)
 
    for creature_name, creature in pairs(creature_templates) do
       if type(creature) == "table" and creature_is_mob_herb_or_carn(creature) then
-	 table.insert(results, convert_to_csv(creature_name, creature))
+     table.insert(results, convert_to_csv(creature_name, creature))
       end
    end
 
@@ -582,9 +582,9 @@ function build_csv()
 
    for _, line in ipairs(templates) do
       if line ~= nil then
-	 table.insert(results, line)
+     table.insert(results, line)
       else
-	 print("Line was nil", file)
+     print("Line was nil", file)
       end
    end
 
@@ -671,13 +671,13 @@ function build_lair_tables()
 
    for lair_template, lair_name in pairs(safe_env.LairTemplates) do
       local lair_v = {
-	 lair_name,
-	 lair_template["spawnLimit"],
-	 lair_template["buildingsVeryEasy"][1], -- frankly, don't care about this data anyway
-	 lair_template["buildingsEasy"][1],
-	 lair_template["buildingsMedium"][1],
-	 lair_template["buildingsHard"][1],
-	 lair_template["buildingsVeryHard"][1]
+         lair_name,
+         lair_template["spawnLimit"],
+         lair_template["buildingsVeryEasy"][1], -- frankly, don't care about this data anyway
+         lair_template["buildingsEasy"][1],
+         lair_template["buildingsMedium"][1],
+         lair_template["buildingsHard"][1],
+         lair_template["buildingsVeryHard"][1]
       }
       local lair_row = table.concat(lair_v, ",")
       table.insert(lair_rows, lair_row)
@@ -685,26 +685,26 @@ function build_lair_tables()
       local mobiles = lair_template["mobiles"]
 
       for _, mobile in ipairs(mobiles) do
-	 local mobile_v = {
-	    lair_name,
-	    mobile[1],
-	    "mobile",
-	    mobile[2]
-	 }
-	 print("mobile value:", mobile_v[1], mobile[2], mobile[3], mobile[4])
-	 table.insert(creature_rows, table.concat(mobile_v, ","))
+         local mobile_v = {
+            lair_name,
+            mobile[1],
+            "mobile",
+            mobile[2]
+         }
+         print("mobile value:", mobile_v[1], mobile[2], mobile[3], mobile[4])
+         table.insert(creature_rows, table.concat(mobile_v, ","))
       end
 
       local boss_mobiles = lair_template["bossMobiles"]
 
       for _, boss in ipairs(boss_mobiles) do
-	 local boss_v = {
-	    lair_name,
-	    boss[1],
-	    "boss",
-	    boss[2]
-	 }
-	 table.insert(creature_rows, table.concat(boss_v, ","))
+         local boss_v = {
+            lair_name,
+            boss[1],
+            "boss",
+            boss[2]
+         }
+         table.insert(creature_rows, table.concat(boss_v, ","))
       end
    end
 
@@ -749,20 +749,20 @@ function build_spawn_groups()
       local lair_spawns = spawn_group["lairSpawns"]
 
       for _, lair_spawn in ipairs(lair_spawns) do
-	 local lair_spawns_row = {
-	    spawn_group_name,
-	    "",
-	    lair_spawn["lairTemplateName"],
-	    lair_spawn["spawnLimit"],
-	    lair_spawn["minDifficulty"],
-	    lair_spawn["maxDifficulty"],
-	    lair_spawn["numberToSpawn"],
-	    lair_spawn["weighting"],
-	    lair_spawn["size"]
-	 }
-	 local lair_spawns_txt = table.concat(lair_spawns_row, ",")
+         local lair_spawns_row = {
+            spawn_group_name,
+            "",
+            lair_spawn["lairTemplateName"],
+            lair_spawn["spawnLimit"],
+            lair_spawn["minDifficulty"],
+            lair_spawn["maxDifficulty"],
+            lair_spawn["numberToSpawn"],
+            lair_spawn["weighting"],
+            lair_spawn["size"]
+         }
+         local lair_spawns_txt = table.concat(lair_spawns_row, ",")
 
-	 table.insert(spawn_groups, lair_spawns_txt)
+         table.insert(spawn_groups, lair_spawns_txt)
       end
    end
 
@@ -771,18 +771,18 @@ function build_spawn_groups()
       local lair_spawns = destroy_mission["lairSpawns"]
 
       for _, lair_spawn in ipairs(lair_spawns) do
-	 local lair_spawns_row = {
-	    destroy_mission_name,
-	    min_level_ceiling,
-	    lair_spawn["lairTemplateName"],
-	    lair_spawn["minDifficulty"],
-	    lair_spawn["maxDifficulty"],
-	    "",
-	    "",
-	    lair_spawn["size"]
-	 }
-	 local lair_spawns_txt = table.concat(lair_spawns_row, ",")
-	 table.insert(spawn_groups, lair_spawns_txt)
+         local lair_spawns_row = {
+            destroy_mission_name,
+            min_level_ceiling,
+            lair_spawn["lairTemplateName"],
+            lair_spawn["minDifficulty"],
+            lair_spawn["maxDifficulty"],
+            "",
+            "",
+            lair_spawn["size"]
+         }
+         local lair_spawns_txt = table.concat(lair_spawns_row, ",")
+         table.insert(spawn_groups, lair_spawns_txt)
       end
    end
 
@@ -817,51 +817,51 @@ function build_planet_regions()
       local regionType = ""
 
       if shape[1] == safe_env.RECTANGLE then
-	 zoneType = "rectangle"
-	 x2 = shape[2]
-	 y2 = shape[3]
+         zoneType = "rectangle"
+         x2 = shape[2]
+         y2 = shape[3]
 
       elseif shape[1] == safe_env.CIRCLE then
-	 zoneType = "circle"
-	 r = shape[2]
+         zoneType = "circle"
+         r = shape[2]
 
       elseif shape[1] == safe_env.RING then
-	 zoneType = "ring"
-	 r1 = shape[2]
-	 r2 = shape[3]
+         zoneType = "ring"
+         r1 = shape[2]
+         r2 = shape[3]
       else
-	 error("Bad shape type")
+         error("Bad shape type")
       end
 
 
       -- zone flags
       local zone_flags = {
-	 UNDEFINEDAREA = 0x000000,
-	 SPAWNAREA = 0x000001,
-	 NOSPAWNAREA = 0x000002,
-	 WORLDSPAWNAREA = 0x000004,
-	 NOWORLDSPAWNAREA = 0x000008,
-	 NOBUILDZONEAREA = 0x000010,
-	 CAMPINGAREA = 0x000020,
-	 CITY = 0x000040,
-	 NAVAREA = 0x000080,
-	 NAMEDREGION = 0x000100,
-	 LOCKEDAREA = 0x000200,
-	 NOCOMBATAREA = 0x000400,
-	 NODUELAREA = 0x000800,
-	 PVPAREA = 0x001000,
-	 OVERTAREA = 0x002000,
-	 REBELAREA = 0x004000,
-	 IMPERIALAREA = 0x008000,
-	 NOPETAREA = 0x010000
+         UNDEFINEDAREA = 0x000000,
+         SPAWNAREA = 0x000001,
+         NOSPAWNAREA = 0x000002,
+         WORLDSPAWNAREA = 0x000004,
+         NOWORLDSPAWNAREA = 0x000008,
+         NOBUILDZONEAREA = 0x000010,
+         CAMPINGAREA = 0x000020,
+         CITY = 0x000040,
+         NAVAREA = 0x000080,
+         NAMEDREGION = 0x000100,
+         LOCKEDAREA = 0x000200,
+         NOCOMBATAREA = 0x000400,
+         NODUELAREA = 0x000800,
+         PVPAREA = 0x001000,
+         OVERTAREA = 0x002000,
+         REBELAREA = 0x004000,
+         IMPERIALAREA = 0x008000,
+         NOPETAREA = 0x010000
       }
 
       local z_flag_result = {}
 
       for name, value in pairs(zone_flags) do
-	 if (bitmask & value) ~= 0 then
-	    table.insert(z_flag_result, name)
-	 end
+         if (bitmask & value) ~= 0 then
+            table.insert(z_flag_result, name)
+         end
       end
 
      local bitmask_str = table.concat(z_flag_result, " + ")
@@ -871,11 +871,11 @@ function build_planet_regions()
       local spawn_zones = entry[6]
 
       if spawn_zones ~= nil then
-	 for _, z in ipairs(spawn_zones) do
-	    table.insert(results, {planet, name, z, zoneType, x, y, x2, y2, r, r1, r2, bitmask_str})
-	 end
+         for _, z in ipairs(spawn_zones) do
+            table.insert(results, {planet, name, z, zoneType, x, y, x2, y2, r, r1, r2, bitmask_str})
+         end
       else
-	 table.insert(results, {planet, name, "", zoneType, x, y, x2, y2, r, r1, r2, bitmask_str})
+         table.insert(results, {planet, name, "", zoneType, x, y, x2, y2, r, r1, r2, bitmask_str})
       end
 
       return results
@@ -897,12 +897,12 @@ function build_planet_regions()
 
    for planet, regions in pairs(region_map) do
       for _, zone in ipairs(regions) do
-	 local rows = parse_spawn_zone(planet, zone)
-	 for _, row in ipairs(rows) do
-	    local csv_value = table.concat(row, ",")
-	    print(csv_value)
-	    table.insert(results, csv_value)
-	 end
+         local rows = parse_spawn_zone(planet, zone)
+         for _, row in ipairs(rows) do
+            local csv_value = table.concat(row, ",")
+            print(csv_value)
+            table.insert(results, csv_value)
+         end
       end
    end
 
