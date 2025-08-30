@@ -23,9 +23,11 @@ This is raw data from the Core3 mobile scripts. It is very lightly cleaned and i
 - [Lair Mobiles](lair_mobiles.html) - associates creatures with lairs, and how they spawn (mobile or boss)
 - [Spawn Groups](lair_spawn_groups.html) - associates the lair with the spawn zones in which it can spawn
 - [Spawn Zones](zones.html) - raw spawn zone data
+- [Static Spawns](static_spawns.html) - static spawn mobiles
 
 # Enriched Data
 
+- [Extinct Creatures](extinct_creatures.html)  - creatures that do not appear in spawn groups or static spawns
 - Work in Progress - Enriched Creature Data
 - Work in Progress - Spawn Zone Maps
 - Work in Progress - Data Workbench

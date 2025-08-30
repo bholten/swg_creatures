@@ -15,84 +15,84 @@ local safe_env = {
    addDressGroup	= function(s) end,
    addWeapon		= function(s) end,
    addOutfitGroup	= function(s) end,
-   require              = function(s) end,
+   require          = function(s) end,
    CONVERSABLE		= 0,
-   Lair			= {},
+   Lair             = {},
    -- object flags
-   NONE				= 0x00,
-   ATTACKABLE			= 0x01,
-   AGGRESSIVE			= 0x02,
-   OVERT			= 0x04,
-   TEF				= 0x08,
-   PLAYER			= 0x10,
-   ENEMY			= 0x20,
-   WILLBEDECLARED		= 0x40,
-   WASDECLARED			= 0x80,
-   NPC				= 0x000001,
-   PACK				= 0x000002,
-   HERD				= 0x000004,
-   KILLER			= 0x000008,
-   STALKER			= 0x000010,
-   BABY				= 0x000020,
-   LAIR				= 0x000040,
-   HEALER			= 0x000080,
-   SCOUT			= 0x000100,
-   PET				= 0x000200,
-   DROID_PET			= 0x000400,
-   FACTION_PET			= 0x000800,
-   ESCORT			= 0x001000,
-   FOLLOW			= 0x002000,
-   STATIC			= 0x004000,
-   STATIONARY			= 0x008000,
-   NOAIAGGRO			= 0x010000,
-   SCANNING_FOR_CONTRABAND	= 0x020000,
-   IGNORE_FACTION_STANDING	= 0x040000,
-   SQUAD			= 0x080000,
-   EVENTCONTROL			= 0x100000,
-   NOINTIMIDATE			= 0x200000,
-   NODOT			= 0x400000,
-   TEST				= 0x800000,
-   LASTAIMASK			= 0x1000000,
-   CARNIVORE			= 0x01,
-   HERBIVORE			= 0x02,
+   NONE                    = 0x00,
+   ATTACKABLE              = 0x01,
+   AGGRESSIVE              = 0x02,
+   OVERT                   = 0x04,
+   TEF                     = 0x08,
+   PLAYER                  = 0x10,
+   ENEMY                   = 0x20,
+   WILLBEDECLARED          = 0x40,
+   WASDECLARED             = 0x80,
+   NPC                     = 0x000001,
+   PACK                    = 0x000002,
+   HERD                    = 0x000004,
+   KILLER                  = 0x000008,
+   STALKER                 = 0x000010,
+   BABY                    = 0x000020,
+   LAIR                    = 0x000040,
+   HEALER                  = 0x000080,
+   SCOUT                   = 0x000100,
+   PET                     = 0x000200,
+   DROID_PET               = 0x000400,
+   FACTION_PET             = 0x000800,
+   ESCORT                  = 0x001000,
+   FOLLOW                  = 0x002000,
+   STATIC                  = 0x004000,
+   STATIONARY              = 0x008000,
+   NOAIAGGRO               = 0x010000,
+   SCANNING_FOR_CONTRABAND = 0x020000,
+   IGNORE_FACTION_STANDING = 0x040000,
+   SQUAD                   = 0x080000,
+   EVENTCONTROL            = 0x100000,
+   NOINTIMIDATE            = 0x200000,
+   NODOT                   = 0x400000,
+   TEST                    = 0x800000,
+   LASTAIMASK              = 0x1000000,
+   CARNIVORE               = 0x01,
+   HERBIVORE               = 0x02,
    -- option bit masks
-   NONE			= 0x00000000,
-   ACTIVATED		= 0x00000001,
-   VENDOR		= 0x00000002,
-   INSURED		= 0x00000004,
-   CONVERSE		= 0x00000008,
-   HIBERNATING		= 0x00000010,
-   YELLOW		= 0x00000020,
-   FACTIONAGGRO		= 0x00000040,
-   AIENABLED		= 0x00000080,
-   INVULNERABLE         = 0x00000100,
-   DISABLED             = 0x00000200,
-   UNINSURABLE          = 0x00000400,
-   INTERESTING          = 0x00000800,
-   VEHICLE              = 0x00001000,
-   HASSERIAL            = 0x00002000,
-   WINGS_OPEN           = 0x00004000,
-   JTLINTERESTING       = 0x00008000,
-   DOCKING              = 0x00010000,
-   DESTROYING           = 0x00020000,
-   COMMABLE             = 0x00040000,
-   DOCKABLE             = 0x00080000,
-   EJECT                = 0x00100000,
-   INSPECTABLE          = 0x00200000,
-   TRANSFERABLE         = 0x00400000,
-   INFLIGHT_TUTORIAL    = 0x00800000,
-   SPACE_COMBAT_MUS     = 0x01000000,
-   ENCOUNTER_LOCKED     = 0x02000000,
-   SPAWNED_CREATURE     = 0x04000000,
-   HOLIDAY_INTERESTING  = 0x08000000,
-   LOCKED		= 0x10000000,
+   NONE                = 0x00000000,
+   ACTIVATED           = 0x00000001,
+   VENDOR              = 0x00000002,
+   INSURED             = 0x00000004,
+   CONVERSE            = 0x00000008,
+   HIBERNATING         = 0x00000010,
+   YELLOW              = 0x00000020,
+   FACTIONAGGRO        = 0x00000040,
+   AIENABLED           = 0x00000080,
+   INVULNERABLE        = 0x00000100,
+   DISABLED            = 0x00000200,
+   UNINSURABLE         = 0x00000400,
+   INTERESTING         = 0x00000800,
+   VEHICLE             = 0x00001000,
+   HASSERIAL           = 0x00002000,
+   WINGS_OPEN          = 0x00004000,
+   JTLINTERESTING      = 0x00008000,
+   DOCKING             = 0x00010000,
+   DESTROYING          = 0x00020000,
+   COMMABLE            = 0x00040000,
+   DOCKABLE            = 0x00080000,
+   EJECT               = 0x00100000,
+   INSPECTABLE         = 0x00200000,
+   TRANSFERABLE        = 0x00400000,
+   INFLIGHT_TUTORIAL   = 0x00800000,
+   SPACE_COMBAT_MUS    = 0x01000000,
+   ENCOUNTER_LOCKED    = 0x02000000,
+   SPAWNED_CREATURE    = 0x04000000,
+   HOLIDAY_INTERESTING = 0x08000000,
+   LOCKED              = 0x10000000,
    -- AI agent
-   MOB_HERBIVORE	= 1,
-   MOB_CARNIVORE	= 2,
-   MOB_NPC		= 3,
-   MOB_DROID		= 4,
-   MOB_ANDROID		= 5,
-   MOB_VEHICLE		= 6,
+   MOB_HERBIVORE = 1,
+   MOB_CARNIVORE = 2,
+   MOB_NPC       = 3,
+   MOB_DROID	 = 4,
+   MOB_ANDROID	 = 5,
+   MOB_VEHICLE	 = 6,
    -- regions
    UNDEFINEDAREA	= 0x000000,
    SPAWNAREA		= 0x000001,
@@ -101,20 +101,20 @@ local safe_env = {
    NOWORLDSPAWNAREA	= 0x000008,
    NOBUILDZONEAREA	= 0x000010,
    CAMPINGAREA		= 0x000020,
-   CITY			= 0x000040,
-   NAVAREA		= 0x000080,
+   CITY             = 0x000040,
+   NAVAREA          = 0x000080,
    NAMEDREGION		= 0x000100,
    LOCKEDAREA		= 0x000200,
    NOCOMBATAREA		= 0x000400,
    NODUELAREA		= 0x000800,
-   PVPAREA		= 0x001000,
+   PVPAREA          = 0x001000,
    OVERTAREA		= 0x002000,
    REBELAREA		= 0x004000,
    IMPERIALAREA		= 0x008000,
    NOPETAREA		= 0x010000,
-   CIRCLE		= 1,
+   CIRCLE           = 1,
    RECTANGLE		= 2,
-   RING			= 3,
+   RING             = 3,
    -- constants
    brawlernovice	= { {"melee1hlunge1",""},{"melee2hlunge1",""},{"polearmlunge1",""},{"unarmedlunge1",""} },
    marksmannovice	= { {"overchargeshot1",""},{"pointblanksingle1",""},{"pointblankarea1",""} },
@@ -214,11 +214,35 @@ local safe_env = {
       buildingType	= "lair"
    },
 
+   isZoneEnabled = true,
+
    LairTemplates = {},
 
    SpawnGroups = {},
 
-   DestroyMissions = {}
+   DestroyMissions = {},
+
+   StaticSpawns = {},
+
+   ScreenPlay = {},
+
+   -- CorelliaStaticSpawnsScreenPlay      = {},
+   -- DantooineStaticSpawnsScreenPlay     = {},
+   -- DathomirStaticSpawnsScreenPlay      = {},
+   -- DathomirStaticSpawnsNeScreenPlay    = {},
+   -- DathomirStaticSpawnsNwScreenPlay    = {},
+   -- DathomirStaticSpawnsSeScreenPlay    = {},
+   -- DathomirStaticSpawnsSwScreenPlay    = {},
+   -- EndorStaticSpawnsScreenPlay         = {},
+   -- LokStaticSpawnsScreenPlay           = {},
+   -- NabooStaticSpawnsNorthScreenPlay    = {},
+   -- NabooStaticSpawnsSouthScreenPlay    = {},
+   -- RoriStaticSpawnsScreenPlay          = {},
+   -- TalusStaticSpawnsNorthScreenPlay    = {},
+   -- TalusStaticSpawnsSouthScreenPlay    = {},
+   -- TatooineStaticSpawnsNorthScreenPlay = {},
+   -- TatooineStaticSpawnsSouthScreenPlay = {},
+   -- Yavin4StaticSpawnsScreenPlay        = {}
 }
 
 function safe_env.merge(a, ...)
@@ -273,6 +297,47 @@ end
 
 function safe_env.addDestroyMissionGroup(str, obj)
    safe_env.DestroyMissions[str] = obj
+end
+
+function safe_env.spawnMobile(zone_id, mobile, respawn_time, x, z, y, header, parent_id)
+   local entry = {
+      zone_id,
+      mobile,
+      respawn_time,
+      x,
+      z,
+      y,
+      header,
+      parent_id
+   }
+   table.insert(safe_env.StaticSpawns, entry)
+end
+
+function safe_env.ScreenPlay:new(args)
+   local sp = {
+      mobiles = {}
+   }
+   function sp:setMoodString(p, n)
+      return nil
+   end
+
+   return sp
+end
+
+function safe_env.registerScreenPlay(foo, bar)
+   return nil
+end
+
+function safe_env.getRandomNumber(s)
+   return math.random(s)
+end
+
+function safe_env.spawnSceneObject(p, t, x, z, y, a, b, c, d, e)
+   return nil
+end
+
+function safe_env.createObserver(a, b, c, d)
+   return nil
 end
 
 --
@@ -911,3 +976,153 @@ function build_planet_regions()
 end
 
 build_planet_regions()
+
+local static_spawns = {
+   "submodules/Core3/MMOCoreORB/bin/scripts/screenplays/static_spawns/corellia_static_spawns/corellia_static_spawns.lua",
+   "submodules/Core3/MMOCoreORB/bin/scripts/screenplays/static_spawns/corellia_static_spawns/dantooine_static_spawns.lua",
+   "submodules/Core3/MMOCoreORB/bin/scripts/screenplays/static_spawns/corellia_static_spawns/dathomir_static_spawns_ne.lua",
+   "submodules/Core3/MMOCoreORB/bin/scripts/screenplays/static_spawns/corellia_static_spawns/dathomir_static_spawns_nw.lua",
+   "submodules/Core3/MMOCoreORB/bin/scripts/screenplays/static_spawns/corellia_static_spawns/dathomir_static_spawns_se.lua",
+   "submodules/Core3/MMOCoreORB/bin/scripts/screenplays/static_spawns/corellia_static_spawns/dathomir_static_spawns_sw.lua",
+   "submodules/Core3/MMOCoreORB/bin/scripts/screenplays/static_spawns/corellia_static_spawns/endor_static_spawns.lua",
+   "submodules/Core3/MMOCoreORB/bin/scripts/screenplays/static_spawns/corellia_static_spawns/lok_static_spawns.lua",
+   "submodules/Core3/MMOCoreORB/bin/scripts/screenplays/static_spawns/corellia_static_spawns/naboo_static_spawns_north.lua",
+   "submodules/Core3/MMOCoreORB/bin/scripts/screenplays/static_spawns/corellia_static_spawns/naboo_static_spawns_south.lua",
+   "submodules/Core3/MMOCoreORB/bin/scripts/screenplays/static_spawns/corellia_static_spawns/rori_static_spawns.lua",
+   "submodules/Core3/MMOCoreORB/bin/scripts/screenplays/static_spawns/corellia_static_spawns/talus_static_spawns_north.lua",
+   "submodules/Core3/MMOCoreORB/bin/scripts/screenplays/static_spawns/corellia_static_spawns/talus_static_spawns_south.lua",
+   "submodules/Core3/MMOCoreORB/bin/scripts/screenplays/static_spawns/corellia_static_spawns/tatooine_static_spawns_north.lua",
+   "submodules/Core3/MMOCoreORB/bin/scripts/screenplays/static_spawns/corellia_static_spawns/tatooine_static_spawns_south.lua",
+   "submodules/Core3/MMOCoreORB/bin/scripts/screenplays/static_spawns/corellia_static_spawns/yavin4_static_spawns.lua"
+}
+
+function make_env(base)
+   local env = { __candidates = {} }
+
+  return setmetatable(env, {
+    __index = base or _G,
+    __newindex = function(t, k, v)
+      rawset(t, k, v)
+      if type(v) == "table" then
+        local f = rawget(v, "spawnMobiles")
+        if type(f) == "function" then
+          t.__candidates[k] = v
+        end
+      end
+    end
+  })
+end
+
+function prefer_by_filename(path, env, method)
+   local stem = (path:match("([^/\\]+)%.lua$") or ""):lower()
+   local cand = rawget(env, stem)
+   if type(cand) == "table" and type(rawget(cand, method)) == "function" then
+      return stem, cand
+   end
+end
+
+local function make_env(base)
+  local env = { __candidates = {} }
+  return setmetatable(env, {
+    __index = base or _G,
+    __newindex = function(t, k, v)
+       rawset(t, k, v)
+       if type(v) == "table" then
+          local f = rawget(v, "spawnMobiles")
+          if type(f) == "function" then
+             t.__candidates[k] = v
+          end
+       end
+    end
+  })
+end
+
+function call_method(obj, method)
+  return pcall(rawget(obj, method), obj)
+end
+
+function scan_env_for(env, method)
+  for name, obj in pairs(env.__candidates) do
+    return name, obj
+  end
+  -- Slow path: full scan of env
+  for k, v in pairs(env) do
+    if type(v) == "table" and type(rawget(v, method)) == "function" then
+      return k, v
+    end
+  end
+end
+
+function run_spawn_mobiles(path)
+   local env = make_env(safe_env)
+
+   local chunk, err = loadfile(path, "t", env)
+   if not chunk then return nil, ("load error: %s"):format(err) end
+
+   local ok, r1, r2 = pcall(chunk)
+   if not ok then return nil, ("runtime error: %s"):format(r1) end
+
+   if type(r1) == "table" and type(rawget(r1, "spawnMobiles")) == "function" then
+      local ok2, e2 = call_method(r1, "spawnMobiles")
+      if not ok2 then return nil, ("spawnMobiles error: %s"):format(e2) end
+      return "returned_table", r1
+   end
+
+   local name, obj = prefer_by_filename(path, env, "spawnMobiles")
+   if not obj then name, obj = scan_env_for(env, "spawnMobiles") end
+   if not obj then
+      print("error:", path)
+      return nil, "spawnMobiles() not found in chunk"
+   end
+
+   local ok3, e3 = call_method(obj, "spawnMobiles")
+   if not ok3 then return nil, ("spawnMobiles error (%s): %s"):format(tostring(name), e3) end
+
+   return name, obj
+end
+
+function build_static_spawns()
+   local static_spawn_folder = "submodules/Core3/MMOCoreORB/bin/scripts/screenplays/static_spawns"
+   local static_spawn_scripts = get_lua_files(static_spawn_folder)
+
+   for _, file in ipairs(static_spawn_scripts) do
+      local name, obj = run_spawn_mobiles(file)
+      if name == nil then
+         print("warning, no spawnMobiles found in:", file)
+      end
+   end
+
+   local poi_static_spawns = "submodules/Core3/MMOCoreORB/bin/scripts/screenplays/poi"
+   local poi_static_spawn_scripts = get_lua_files(poi_static_spawns)
+
+   for _, file in ipairs(poi_static_spawn_scripts) do
+      local name, obj = run_spawn_mobiles(file)
+      if name == nil then
+         print("warning, no spawnMobiles found in:", file)
+      end
+   end
+
+   local caves_static_spawns = "submodules/Core3/MMOCoreORB/bin/scripts/screenplays/caves"
+   local caves_static_spawn_scripts = get_lua_files(caves_static_spawns)
+
+   for _, file in ipairs(caves_static_spawn_scripts) do
+      local name, obj = run_spawn_mobiles(file)
+      if name == nil then
+         print("warning, no spawnMobiles found in:", file)
+      end
+   end
+
+   local csv_header = "zone_id,mobile,respawn_time,x,z,y,header,parent_id"
+   local results = {csv_header}
+
+   for _, value in ipairs(safe_env.StaticSpawns) do
+      local line = table.concat(value, ",")
+      print(line)
+      table.insert(results, line)
+   end
+
+   local csv = table.concat(results, "\n")
+   write_to_file("static_spawns.csv", csv)
+end
+
+build_static_spawns()

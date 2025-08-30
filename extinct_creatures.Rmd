@@ -1,0 +1,78 @@
+---
+title: "SWGEmu Extinct Creatures"
+output:
+  html_document:
+    includes:
+      after_body: footer.html
+---
+
+# (Possibly) Extinct Creatures
+
+This table shows creature who do not appear in the spawn group or static spawns table.
+
+I'm personally not very confident about the static spawns table (it may be incomplete), because Core3 defines static spawns across several files, and I may have missed or not parsed a subset of the data correctly. So use this table with a grain of salt.
+
+You can download this data as a CSV or Excel spreadsheet.
+
+```{r setup, include=FALSE}
+library(DT)
+library(readr)
+library(dplyr)
+library(magrittr)
+library(stringr)
+library(glue)
+
+git_commit <- system("git -C submodules/Core3 rev-parse --short HEAD", intern = TRUE)
+
+creatures <- read_csv("creatures.csv")
+lair_mobiles <- read_csv("lair_mobiles.csv")
+static_spawns <- read_csv("static_spawns.csv")
+lair_spawn_groups <- read_csv("lair_spawn_groups.csv")
+
+links <- creatures %>%
+  distinct(creatureName) %>%
+  left_join(select(lair_mobiles, creatureName, lairName), by = "creatureName") %>%
+  left_join(select(static_spawns, mobile, x, z, y), by = c("creatureName" = "mobile")) %>%
+  left_join(select(lair_spawn_groups, lairTemplateName, spawnGroupName), by = c("lairName" = "lairTemplateName")) # %>%
+  # left_join(select(zones, spawnZone, name), by = c("spawnGroupName" = "spawnZone"))
+
+creature_zone_status <- links %>%
+  group_by(creatureName) %>%
+  summarise(
+    #has_zone       = any(!is.na(name)),
+    has_group      = any(!is.na(spawnGroupName)),
+    static_spawn   = any(!is.na(x), !is.na(y), !is.na(z)),
+    n_lairs        = n_distinct(lairName, na.rm = TRUE),
+    n_spawn_groups = n_distinct(spawnGroupName, na.rm = TRUE),
+    #n_zones        = n_distinct(name, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+creatures_without_spawn_group <- creature_zone_status %>%
+  filter(!has_group) %>%
+  filter(!static_spawn) %>%
+  select(creatureName, n_lairs, n_spawn_groups, static_spawn)
+
+```
+
+This data is scraped from Core3 commit `r git_commit`.
+
+```{r, echo=FALSE}
+datatable(creatures_without_spawn_group, filter = "top",
+          extensions = c("Buttons", "ColReorder", "KeyTable"),
+          options = list(
+            dom = "Blfrtip",
+            buttons = c("copy", "csv", "excel"),
+            pageLength = 10,
+            autoWidth = FALSE, # turning these off because the table is too wide and break Firefox
+            scrollX = FALSE,   # ^ ditto
+            searchHighlight = FALSE,
+            lengthMenu = list(c(10, 25, 50, 100, -1),
+                              c("10", "25", "50", "100", "All")),
+            keys = TRUE,
+            colReorder = TRUE
+          ),
+          escape = FALSE
+        )
+```
+
