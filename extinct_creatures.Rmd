@@ -12,6 +12,8 @@ This table shows creature who do not appear in the spawn group or static spawns 
 
 I'm personally not very confident about the static spawns table (it may be incomplete), because Core3 defines static spawns across several files, and I may have missed or not parsed a subset of the data correctly. So use this table with a grain of salt.
 
+**SOME OF THESE ARE OBVIOUSLY WRONG** so please, contain your autism. For example, Kiin'Dray comes up because it spawns dynamically when a boss is killed -- and it's too much effort to scrape Core3 data to the level of figuring out all the dynamic or mission-trigger spawns.
+
 You can download this data as a CSV or Excel spreadsheet.
 
 ```{r setup, include=FALSE}
