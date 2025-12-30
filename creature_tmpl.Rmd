@@ -1,31 +1,172 @@
 ---
-title: "Creature Report: `r params$creature_name`"
-output: html_document
+title: "`r params$creature_name`"
+output:
+  html_document:
+    includes:
+      after_body: footer.html
 params:
-  creature_name: squall
+  creature_name: "squall"
 ---
 
 ```{r setup, include=FALSE}
+library(DT)
 library(dplyr)
 library(magrittr)
 library(readr)
-library(jsonlite)
+library(knitr)
+
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+
+git_commit <- system("git -C submodules/Core3 rev-parse --short HEAD", intern = TRUE)
+
+creatures <- read_csv("creatures.csv", show_col_types = FALSE)
+lair_mobiles <- read_csv("lair_mobiles.csv", show_col_types = FALSE)
+lairs <- read_csv("lairs.csv", show_col_types = FALSE)
+lair_spawn_groups <- read_csv("lair_spawn_groups.csv", show_col_types = FALSE)
+static_spawns <- read_csv("static_spawns.csv", show_col_types = FALSE)
+zones <- read_csv("zones.csv", show_col_types = FALSE)
+
+creature_data <- creatures %>% filter(creatureName == params$creature_name)
 ```
 
-```{r, echo=FALSE}
-creatures <- read_csv("creatures.csv")
-lair_mobiles <- read_csv("lair_mobiles.csv")
-lairs <- read_csv("lairs.csv")
-lair_spawn_groups <- read_csv("lair_spawn_groups.csv")
+[Back to Creature Index](creatures_index.html)
 
-creatures_denorm <- lair_mobiles %>%
+This data is scraped from Core3 commit `r git_commit`.
+
+## Stats
+
+```{r stats}
+if (nrow(creature_data) == 0) {
+  cat("No creature data found.")
+} else {
+  # Combat stats
+  combat_stats <- creature_data %>%
+    select(level, chanceHit, damageMin, damageMax, baseXp, baseHAM, armor, ferocity, scale) %>%
+    mutate(across(everything(), as.character)) %>%
+    tidyr::pivot_longer(everything(), names_to = "Attribute", values_to = "Value")
+
+  kable(combat_stats, col.names = c("Attribute", "Value"))
+}
+```
+
+### Resistances
+
+```{r resists}
+if (nrow(creature_data) > 0) {
+  resist_data <- creature_data %>%
+    select(kinetic, kineticEff, energy, energyEff, blast, blastEff,
+           heat, heatEff, cold, coldEff, electricity, electricityEff,
+           acid, acidEff, stun, stunEff, lightsaber, lightSaberEff) %>%
+    mutate(across(everything(), as.character)) %>%
+    tidyr::pivot_longer(everything(), names_to = "Attribute", values_to = "Value")
+
+  kable(resist_data, col.names = c("Resistance", "Value"))
+}
+```
+
+### Resources
+
+```{r resources}
+if (nrow(creature_data) > 0) {
+  resource_data <- creature_data %>%
+    select(meatType, meatAmount, hideType, hideAmount, boneType, boneAmount, milk) %>%
+    mutate(across(everything(), as.character)) %>%
+    tidyr::pivot_longer(everything(), names_to = "Attribute", values_to = "Value")
+
+  kable(resource_data, col.names = c("Resource", "Value"))
+}
+```
+
+### Other Attributes
+
+```{r other}
+if (nrow(creature_data) > 0) {
+  other_data <- creature_data %>%
+    select(socialGroup, faction, diet, tamingChance,
+           primaryWeapon, secondaryWeapon,
+           primarySpecialAttackOne, primarySpecialAttackTwo) %>%
+    mutate(across(everything(), as.character))
+
+  other_long <- other_data %>%
+    tidyr::pivot_longer(everything(), names_to = "Attribute", values_to = "Value")
+
+  kable(other_long, col.names = c("Attribute", "Value"))
+}
+```
+
+## Lairs
+
+```{r lairs}
+creature_lairs <- lair_mobiles %>%
+  filter(creatureName == params$creature_name) %>%
   left_join(lairs, by = "lairName") %>%
-  left_join(lair_spawn_groups, by = c("lairName" = "lairTemplateName")) %>%
-  left_join(creatures, by = "creatureName") %>%
-  filter(creatureName == params$creature_name)
+  select(lairName, type, count, spawnLimit,
+         buildingsVeryEasy, buildingsEasy, buildingsMedium, buildingsHard, buildingsVeryHard)
+
+if (nrow(creature_lairs) == 0) {
+  cat("This creature is not associated with any lairs.")
+} else {
+  datatable(creature_lairs,
+            filter = "top",
+            options = list(
+              dom = "t",
+              pageLength = 50,
+              autoWidth = FALSE
+            ),
+            rownames = FALSE)
+}
 ```
 
-```{r}
-creatures_denorm %>%
-  toJSON(pretty = TRUE, auto_unbox = TRUE)
+## Spawn Locations
+
+These are the spawn zones where this creature's lairs can appear, with geographic coordinates.
+
+```{r spawn_groups}
+creature_lairs_list <- lair_mobiles %>%
+  filter(creatureName == params$creature_name) %>%
+  pull(lairName)
+
+spawn_locations <- lair_spawn_groups %>%
+  filter(lairTemplateName %in% creature_lairs_list) %>%
+  left_join(zones, by = c("spawnGroupName" = "spawnZone")) %>%
+  select(planet, spawnGroupName, lairTemplateName, zoneType,
+         x, y, x2, y2, r,
+         minDifficulty, maxDifficulty, numberToSpawn, weighting, size)
+
+if (nrow(spawn_locations) == 0) {
+  cat("This creature's lairs do not appear in any spawn groups.")
+} else {
+  datatable(spawn_locations,
+            filter = "top",
+            options = list(
+              dom = "t",
+              pageLength = 50,
+              autoWidth = FALSE,
+              scrollX = TRUE
+            ),
+            rownames = FALSE)
+}
+```
+
+## Static Spawns
+
+These are fixed spawn points for this creature.
+
+```{r static}
+creature_static <- static_spawns %>%
+  filter(mobile == params$creature_name) %>%
+  select(planet = zone_id, x, y, z, respawn_time, heading = header, parent_id)
+
+if (nrow(creature_static) == 0) {
+  cat("This creature has no static spawn points.")
+} else {
+  datatable(creature_static,
+            filter = "top",
+            options = list(
+              dom = "t",
+              pageLength = 50,
+              autoWidth = FALSE
+            ),
+            rownames = FALSE)
+}
 ```

@@ -1,0 +1,38 @@
+---
+title: "Spawn Zone Maps"
+output:
+  html_document:
+    includes:
+      after_body: footer.html
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+# Planet Spawn Maps
+
+Interactive maps showing spawn zones and static spawn locations for each planet.
+
+Each map displays:
+
+- **Blue zones**: Dynamic spawn areas where creature lairs can appear
+- **Red markers**: Static spawn points (fixed creature locations)
+- **Hover** over zones to see zone name
+- **Click** for detailed popup with creatures and coordinates
+- **Layer controls** to toggle spawn zones and static spawns
+
+## Select a Planet
+
+| Planet | Map |
+|--------|-----|
+| Corellia | [View Map](maps/corellia.html) |
+| Dantooine | [View Map](maps/dantooine.html) |
+| Dathomir | [View Map](maps/dathomir.html) |
+| Endor | [View Map](maps/endor.html) |
+| Lok | [View Map](maps/lok.html) |
+| Naboo | [View Map](maps/naboo.html) |
+| Rori | [View Map](maps/rori.html) |
+| Talus | [View Map](maps/talus.html) |
+| Tatooine | [View Map](maps/tatooine.html) |
+| Yavin 4 | [View Map](maps/yavin4.html) |

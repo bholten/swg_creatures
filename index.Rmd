@@ -28,9 +28,9 @@ This is raw data from the Core3 mobile scripts. It is very lightly cleaned and i
 # Enriched Data
 
 - [Extinct Creatures](extinct_creatures.html)  - creatures that do not appear in spawn groups or static spawns
-- Work in Progress - Enriched Creature Data
-- Work in Progress - Spawn Zone Maps
-- Work in Progress - Data Workbench
+- [Creature Index](creatures_index.html) - individual creature reports with unified data from all tables
+- [Spawn Zone Maps](maps_index.html) - interactive maps showing spawn zones and static spawns per planet
+- [Data Workbench](data_workbench.html) - SQL query interface for all creature data
 - Work in Progress - Loot Tables
 - Work in Progress - DNA Samples
 

@@ -4,7 +4,12 @@ required_packages <- c(
   "dplyr",
   "magrittr",
   "stringr",
-  "glue"
+  "glue",
+  "tidyr",
+  "knitr",
+  "rmarkdown",
+  "leaflet",
+  "htmltools"
 )
 new_packages <- required_packages[!(required_packages %in% installed.packages()[,"Package"])]
 if (length(new_packages)) install.packages(new_packages)
