@@ -1,0 +1,48 @@
+---
+title: "Creature Index"
+output:
+  html_document:
+    includes:
+      after_body: footer.html
+---
+
+```{r setup, include=FALSE}
+library(DT)
+library(readr)
+library(dplyr)
+library(magrittr)
+
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+
+git_commit <- system("git -C submodules/Core3 rev-parse --short HEAD", intern = TRUE)
+
+creatures <- read_csv("creatures.csv", show_col_types = FALSE)
+```
+
+This is an index of all creatures with links to their individual reports.
+
+This data is scraped from Core3 commit `r git_commit`.
+
+```{r index}
+creature_index <- creatures %>%
+  select(creatureName, level, socialGroup) %>%
+  mutate(
+    creatureName = sprintf('<a href="creatures/%s.html">%s</a>', creatureName, creatureName)
+  ) %>%
+  arrange(creatureName)
+
+datatable(creature_index,
+          filter = "top",
+          extensions = c("Buttons", "KeyTable"),
+          options = list(
+            dom = "Blfrtip",
+            buttons = c("copy", "csv"),
+            pageLength = 25,
+            autoWidth = FALSE,
+            lengthMenu = list(c(10, 25, 50, 100, -1),
+                              c("10", "25", "50", "100", "All")),
+            keys = TRUE
+          ),
+          escape = FALSE,
+          rownames = FALSE)
+```
