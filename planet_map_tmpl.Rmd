@@ -1,0 +1,624 @@
+---
+title: "`r params$planet_name` Spawn Map"
+output:
+  html_document:
+    includes:
+      after_body: footer.html
+params:
+  planet_name: "tatooine"
+---
+
+```{r setup, include=FALSE}
+library(leaflet)
+library(dplyr)
+library(readr)
+library(htmltools)
+
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+
+# Load data
+zones <- read_csv("zones.csv", show_col_types = FALSE)
+static_spawns <- read_csv("static_spawns.csv", show_col_types = FALSE)
+lair_spawn_groups <- read_csv("lair_spawn_groups.csv", show_col_types = FALSE)
+lair_mobiles <- read_csv("lair_mobiles.csv", show_col_types = FALSE)
+
+# Planet name mapping for data vs image files
+planet_data_name <- params$planet_name
+planet_display_name <- tools::toTitleCase(params$planet_name)
+
+# Handle yavin/yavin4 mismatch
+if (planet_data_name == "yavin4") {
+  zones_planet_name <- "yavin"
+} else {
+  zones_planet_name <- planet_data_name
+}
+
+# Map image paths - relative to html/maps/ output directory
+image_map <- list(
+  corellia = "Corellia.jpg",
+  dantooine = "Dantooine.jpg",
+  dathomir = "Dathomir.jpg",
+  endor = "Endor.jpg",
+  lok = "Lok.jpg",
+  naboo = "Naboo.jpg",
+  rori = "Rori.webp",
+  talus = "talus_map.png",
+  tatooine = "Tatooine.jpg",
+  yavin4 = "Yavin4.jpg"
+)
+
+map_image <- image_map[[planet_data_name]]
+
+# Filter data for this planet
+planet_zones <- zones %>%
+  filter(planet == zones_planet_name, !is.na(spawnZone), spawnZone != "")
+
+planet_static <- static_spawns %>%
+  filter(zone_id == planet_data_name)
+
+# Get creatures for each spawn zone (truncated for popup)
+get_creatures_for_zone <- function(spawn_zone) {
+  lairs <- lair_spawn_groups %>%
+    filter(spawnGroupName == spawn_zone) %>%
+    pull(lairTemplateName)
+
+  creatures <- lair_mobiles %>%
+    filter(lairName %in% lairs) %>%
+    distinct(creatureName) %>%
+    pull(creatureName)
+
+  if (length(creatures) == 0) return("No creatures")
+  if (length(creatures) > 10) {
+    return(paste(c(head(creatures, 10), paste0("... and ", length(creatures) - 10, " more")), collapse = ", "))
+  }
+  paste(creatures, collapse = ", ")
+}
+
+# Get ALL creatures for each spawn zone (for sidebar)
+get_all_creatures_for_zone <- function(spawn_zone) {
+  lairs <- lair_spawn_groups %>%
+    filter(spawnGroupName == spawn_zone) %>%
+    pull(lairTemplateName)
+
+  creatures <- lair_mobiles %>%
+    filter(lairName %in% lairs) %>%
+    distinct(creatureName) %>%
+    arrange(creatureName) %>%
+    pull(creatureName)
+
+  if (length(creatures) == 0) return(list())
+  as.list(creatures)
+}
+
+# Build zone data for sidebar
+zone_data_for_sidebar <- lapply(seq_len(nrow(planet_zones)), function(i) {
+  zone <- planet_zones[i, ]
+  list(
+    name = zone$spawnZone,
+    type = zone$zoneType,
+    x = zone$x,
+    y = zone$y,
+    x2 = if (!is.na(zone$x2)) zone$x2 else NULL,
+    y2 = if (!is.na(zone$y2)) zone$y2 else NULL,
+    r = if (!is.na(zone$r)) zone$r else NULL,
+    creatures = get_all_creatures_for_zone(zone$spawnZone)
+  )
+})
+names(zone_data_for_sidebar) <- planet_zones$spawnZone
+
+# Game coordinate bounds
+game_bounds <- list(
+  min_x = -8000,
+  max_x = 8000,
+  min_y = -8000,
+  max_y = 8000
+)
+```
+
+# `r planet_display_name`
+
+This interactive map shows spawn zones and static spawn points for `r planet_display_name`.
+
+- **Blue circles/rectangles**: Dynamic spawn zones (lairs spawn here)
+- **Red markers**: Static spawn points (fixed creature locations)
+- **Hover** over zones to see zone name
+- **Click** on a zone to see full details in the sidebar (including all creatures)
+- Use the **layer control** (top right) to toggle visibility
+- **Search** for creatures below - zones without matching creatures will be hidden
+
+<div id="creature-search-container">
+<input type="text" id="creature-search" placeholder="Search creatures (e.g., rancor, *krayt*, gorax...)" />
+<span id="search-results-count"></span>
+<button id="clear-search" onclick="clearCreatureSearch()">Clear</button>
+</div>
+
+<style>
+#creature-search-container {
+  margin: 15px 0;
+  padding: 10px;
+  background: #f5f5f5;
+  border-radius: 5px;
+}
+#creature-search {
+  width: 400px;
+  padding: 8px 12px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+#creature-search:focus {
+  outline: none;
+  border-color: #3388ff;
+  box-shadow: 0 0 3px rgba(51,136,255,0.5);
+}
+#search-results-count {
+  margin-left: 10px;
+  color: #666;
+  font-size: 14px;
+}
+#clear-search {
+  margin-left: 10px;
+  padding: 8px 15px;
+  cursor: pointer;
+  background: #e0e0e0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+#clear-search:hover { background: #d0d0d0; }
+
+#zone-sidebar {
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: 320px;
+  height: 100vh;
+  background: white;
+  border-left: 2px solid #ccc;
+  padding: 15px;
+  overflow-y: auto;
+  z-index: 10000;
+  box-shadow: -2px 0 5px rgba(0,0,0,0.2);
+  display: none;
+}
+#zone-sidebar.visible { display: block; }
+#zone-sidebar h3 { margin-top: 0; color: #333; }
+#zone-sidebar .close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  cursor: pointer;
+  font-size: 20px;
+  color: #666;
+}
+#zone-sidebar .close-btn:hover { color: #000; }
+#zone-sidebar .creature-list {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  padding: 8px;
+  margin-top: 10px;
+  background: #f9f9f9;
+}
+#zone-sidebar .creature-list a {
+  display: block;
+  padding: 2px 0;
+  color: #0066cc;
+  text-decoration: none;
+}
+#zone-sidebar .creature-list a:hover { text-decoration: underline; }
+#zone-sidebar .zone-info { margin: 10px 0; }
+#zone-sidebar .zone-info strong { color: #555; }
+</style>
+
+```{r sidebar_html, results='asis', echo=FALSE}
+cat('<div id="zone-sidebar"><span class="close-btn" onclick="document.getElementById(\'zone-sidebar\').classList.remove(\'visible\')">&times;</span><h3 id="sidebar-zone-name">Zone Details</h3><div class="zone-info"><p><strong>Type:</strong> <span id="sidebar-zone-type"></span></p><p><strong>Coordinates:</strong> <span id="sidebar-zone-coords"></span></p></div><h4>Creatures (<span id="sidebar-creature-count">0</span>)</h4><div class="creature-list" id="sidebar-creature-list"></div></div>')
+```
+
+```{r zone_data_script, results='asis', echo=FALSE}
+script_content <- sprintf("
+<script>
+var zoneDataGlobal = %s;
+
+function showZoneSidebar(zoneName) {
+  var data = zoneDataGlobal[zoneName];
+  if (!data) {
+    console.log('Zone not found:', zoneName, 'Available:', Object.keys(zoneDataGlobal));
+    return;
+  }
+
+  document.getElementById('sidebar-zone-name').textContent = data.name;
+  document.getElementById('sidebar-zone-type').textContent = data.type.charAt(0).toUpperCase() + data.type.slice(1);
+
+  var coords = '';
+  if (data.type === 'circle') {
+    coords = 'Center: (' + Math.round(data.x) + ', ' + Math.round(data.y) + '), Radius: ' + Math.round(data.r);
+  } else {
+    coords = '(' + Math.round(data.x) + ', ' + Math.round(data.y) + ') to (' + Math.round(data.x2) + ', ' + Math.round(data.y2) + ')';
+  }
+  document.getElementById('sidebar-zone-coords').textContent = coords;
+
+  var creatures = data.creatures || [];
+  document.getElementById('sidebar-creature-count').textContent = creatures.length;
+
+  var listHtml = '';
+  creatures.forEach(function(c) {
+    listHtml += '<a href=\"../creatures/' + c + '.html\" target=\"_blank\">' + c + '</a>';
+  });
+  if (creatures.length === 0) {
+    listHtml = '<em>No creatures found</em>';
+  }
+  document.getElementById('sidebar-creature-list').innerHTML = listHtml;
+
+  document.getElementById('zone-sidebar').classList.add('visible');
+}
+
+// Search functionality
+var leafletMapGlobal = null;
+var allZoneNames = Object.keys(zoneDataGlobal);
+var zoneLayers = {}; // Store references to all zone layers
+
+function wildcardToRegex(pattern) {
+  // Convert wildcard pattern to regex: * becomes .*, ? becomes .
+  // If no wildcards, do substring match (add .* around it)
+  if (pattern.indexOf('*') === -1 && pattern.indexOf('?') === -1) {
+    return new RegExp(pattern, 'i');
+  }
+  var escaped = pattern.replace(/[.+^${}()|[\\]\\\\]/g, '\\\\$&');
+  escaped = escaped.replace(/\\*/g, '.*').replace(/\\?/g, '.');
+  return new RegExp('^' + escaped + '$', 'i');
+}
+
+function filterZonesByCreature(searchTerm) {
+  if (!leafletMapGlobal || !searchTerm.trim()) {
+    // Show all zones if search is empty
+    showAllZonesSearch();
+    return;
+  }
+
+  var regex = wildcardToRegex(searchTerm.trim());
+  var matchingZones = [];
+  var matchingCreatures = new Set();
+
+  // Find zones that have matching creatures
+  allZoneNames.forEach(function(zoneName) {
+    var zoneData = zoneDataGlobal[zoneName];
+    if (!zoneData || !zoneData.creatures) return;
+
+    var hasMatch = zoneData.creatures.some(function(creature) {
+      if (regex.test(creature)) {
+        matchingCreatures.add(creature);
+        return true;
+      }
+      return false;
+    });
+
+    if (hasMatch) {
+      matchingZones.push(zoneName);
+    }
+  });
+
+  // Show/hide zones on the map using stored layer references
+  Object.keys(zoneLayers).forEach(function(zoneName) {
+    var layer = zoneLayers[zoneName];
+    if (matchingZones.includes(zoneName)) {
+      if (!leafletMapGlobal.hasLayer(layer)) {
+        leafletMapGlobal.addLayer(layer);
+      }
+    } else {
+      if (leafletMapGlobal.hasLayer(layer)) {
+        leafletMapGlobal.removeLayer(layer);
+      }
+    }
+  });
+
+  // Update checkboxes in layer control
+  var checkboxes = document.querySelectorAll('.leaflet-control-layers-overlays input');
+  checkboxes.forEach(function(cb) {
+    var label = cb.nextSibling.textContent.trim();
+    if (zoneDataGlobal[label]) {
+      cb.checked = matchingZones.includes(label);
+    }
+  });
+
+  // Update results count
+  document.getElementById('search-results-count').textContent =
+    matchingZones.length + ' zones, ' + matchingCreatures.size + ' creatures';
+}
+
+function showAllZonesSearch() {
+  if (!leafletMapGlobal) return;
+
+  // Use stored layer references to show all zones
+  Object.keys(zoneLayers).forEach(function(zoneName) {
+    var layer = zoneLayers[zoneName];
+    if (!leafletMapGlobal.hasLayer(layer)) {
+      leafletMapGlobal.addLayer(layer);
+    }
+  });
+
+  // Update checkboxes
+  var checkboxes = document.querySelectorAll('.leaflet-control-layers-overlays input');
+  checkboxes.forEach(function(cb) {
+    var label = cb.nextSibling.textContent.trim();
+    if (zoneDataGlobal[label]) {
+      cb.checked = true;
+    }
+  });
+
+  document.getElementById('search-results-count').textContent = '';
+}
+
+function clearCreatureSearch() {
+  document.getElementById('creature-search').value = '';
+  showAllZonesSearch();
+}
+
+// Set up search input listener when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+  var searchInput = document.getElementById('creature-search');
+  if (searchInput) {
+    var debounceTimer;
+    searchInput.addEventListener('input', function() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(function() {
+        filterZonesByCreature(searchInput.value);
+      }, 200);
+    });
+  }
+});
+</script>
+", jsonlite::toJSON(zone_data_for_sidebar, auto_unbox = TRUE))
+cat(script_content)
+```
+
+```{r map, fig.width=10, fig.height=10}
+# Create the leaflet map with simple CRS (game coordinates)
+map <- leaflet(options = leafletOptions(
+  crs = leafletCRS(crsClass = "L.CRS.Simple"),
+  minZoom = -5,
+  maxZoom = 4
+)) %>%
+  # Set view to center of map, zoomed out to see full planet
+  setView(lng = 0, lat = 0, zoom = -2) %>%
+  # Add the planet image as background via JavaScript
+  htmlwidgets::onRender(sprintf("
+    function(el, x) {
+      var map = this;
+      var imageUrl = '%s';
+      var bounds = [[%d, %d], [%d, %d]];
+      L.imageOverlay(imageUrl, bounds).addTo(map);
+    }
+  ", map_image, game_bounds$min_y, game_bounds$min_x, game_bounds$max_y, game_bounds$max_x))
+
+# Track all zone names for layer control
+zone_names <- c()
+
+# Add circular zones - each zone gets its own layer group
+circle_zones <- planet_zones %>% filter(zoneType == "circle", !is.na(r))
+if (nrow(circle_zones) > 0) {
+  for (i in 1:nrow(circle_zones)) {
+    zone <- circle_zones[i, ]
+    creatures <- get_creatures_for_zone(zone$spawnZone)
+    zone_names <- c(zone_names, zone$spawnZone)
+
+    popup_content <- paste0(
+      "<b>", zone$spawnZone, "</b><br>",
+      "<b>Type:</b> Circle<br>",
+      "<b>Center:</b> (", round(zone$x), ", ", round(zone$y), ")<br>",
+      "<b>Radius:</b> ", round(zone$r), "<br>",
+      "<b>Creatures:</b> ", creatures, "<br><br>",
+      "<button onclick=\"showZoneSidebar('", zone$spawnZone, "')\" style=\"cursor:pointer;padding:5px 10px;\">View All Creatures</button>"
+    )
+
+    map <- map %>%
+      addCircles(
+        lng = zone$x,
+        lat = zone$y,
+        radius = zone$r,
+        color = "#3388ff",
+        fillColor = "#3388ff",
+        fillOpacity = 0.2,
+        weight = 2,
+        popup = popup_content,
+        label = zone$spawnZone,
+        group = zone$spawnZone,
+        layerId = zone$spawnZone
+      )
+  }
+}
+
+# Add rectangular zones - each zone gets its own layer group
+rect_zones <- planet_zones %>% filter(zoneType == "rectangle", !is.na(x2), !is.na(y2))
+if (nrow(rect_zones) > 0) {
+  for (i in 1:nrow(rect_zones)) {
+    zone <- rect_zones[i, ]
+    creatures <- get_creatures_for_zone(zone$spawnZone)
+    zone_names <- c(zone_names, zone$spawnZone)
+
+    popup_content <- paste0(
+      "<b>", zone$spawnZone, "</b><br>",
+      "<b>Type:</b> Rectangle<br>",
+      "<b>Bounds:</b> (", round(zone$x), ", ", round(zone$y), ") to (",
+      round(zone$x2), ", ", round(zone$y2), ")<br>",
+      "<b>Creatures:</b> ", creatures, "<br><br>",
+      "<button onclick=\"showZoneSidebar('", zone$spawnZone, "')\" style=\"cursor:pointer;padding:5px 10px;\">View All Creatures</button>"
+    )
+
+    map <- map %>%
+      addRectangles(
+        lng1 = zone$x,
+        lat1 = zone$y,
+        lng2 = zone$x2,
+        lat2 = zone$y2,
+        color = "#3388ff",
+        fillColor = "#3388ff",
+        fillOpacity = 0.2,
+        weight = 2,
+        popup = popup_content,
+        label = zone$spawnZone,
+        group = zone$spawnZone,
+        layerId = zone$spawnZone
+      )
+  }
+}
+
+# Add static spawn markers
+if (nrow(planet_static) > 0) {
+  # Limit markers if there are too many (for performance)
+  static_to_show <- if (nrow(planet_static) > 500) {
+    planet_static %>% sample_n(500)
+  } else {
+    planet_static
+  }
+
+  for (i in 1:nrow(static_to_show)) {
+    spawn <- static_to_show[i, ]
+
+    popup_content <- paste0(
+      "<b>", spawn$mobile, "</b><br>",
+      "<b>Location:</b> (", round(spawn$x), ", ", round(spawn$y), ", ", round(spawn$z), ")<br>",
+      "<b>Respawn:</b> ", spawn$respawn_time, "s"
+    )
+
+    map <- map %>%
+      addCircleMarkers(
+        lng = spawn$x,
+        lat = spawn$y,
+        radius = 4,
+        color = "#ff4444",
+        fillColor = "#ff4444",
+        fillOpacity = 0.8,
+        weight = 1,
+        popup = popup_content,
+        label = spawn$mobile,
+        group = "Static Spawns"
+      )
+  }
+}
+
+# Add layer control with all individual zones + static spawns
+# Sort zone names alphabetically for easier navigation
+sorted_zones <- sort(unique(zone_names))
+all_layers <- c(sorted_zones, "Static Spawns")
+
+map <- map %>%
+  addLayersControl(
+    overlayGroups = all_layers,
+    options = layersControlOptions(collapsed = TRUE)
+  ) %>%
+  # Add check/uncheck all buttons and click handlers via JavaScript
+
+  htmlwidgets::onRender(sprintf("
+    function(el, x) {
+      var map = this;
+      var zoneNames = %s;
+
+      // Store map reference globally for search functionality
+      leafletMapGlobal = map;
+
+      // Store references to all zone layers for show/hide functionality
+      map.eachLayer(function(layer) {
+        if (layer.options && layer.options.group && zoneDataGlobal[layer.options.group]) {
+          zoneLayers[layer.options.group] = layer;
+        }
+      });
+
+      // Create control container for buttons
+      var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+      container.style.backgroundColor = 'white';
+      container.style.padding = '5px';
+
+      // Show All button
+      var showBtn = L.DomUtil.create('button', '', container);
+      showBtn.innerHTML = 'Show All Zones';
+      showBtn.style.display = 'block';
+      showBtn.style.marginBottom = '3px';
+      showBtn.style.cursor = 'pointer';
+      showBtn.onclick = function() {
+        // Use stored layer references
+        Object.keys(zoneLayers).forEach(function(name) {
+          var layer = zoneLayers[name];
+          if (!map.hasLayer(layer)) map.addLayer(layer);
+        });
+        // Update checkboxes in layer control
+        var checkboxes = document.querySelectorAll('.leaflet-control-layers-overlays input');
+        checkboxes.forEach(function(cb) {
+          var label = cb.nextSibling.textContent.trim();
+          if (zoneLayers[label]) cb.checked = true;
+        });
+        // Clear search box
+        document.getElementById('creature-search').value = '';
+        document.getElementById('search-results-count').textContent = '';
+      };
+
+      // Hide All button
+      var hideBtn = L.DomUtil.create('button', '', container);
+      hideBtn.innerHTML = 'Hide All Zones';
+      hideBtn.style.display = 'block';
+      hideBtn.style.cursor = 'pointer';
+      hideBtn.onclick = function() {
+        // Use stored layer references
+        Object.keys(zoneLayers).forEach(function(name) {
+          var layer = zoneLayers[name];
+          if (map.hasLayer(layer)) map.removeLayer(layer);
+        });
+        // Update checkboxes in layer control
+        var checkboxes = document.querySelectorAll('.leaflet-control-layers-overlays input');
+        checkboxes.forEach(function(cb) {
+          var label = cb.nextSibling.textContent.trim();
+          if (zoneLayers[label]) cb.checked = false;
+        });
+      };
+
+      // Add as custom control
+      var CustomControl = L.Control.extend({
+        options: { position: 'topright' },
+        onAdd: function(map) { return container; }
+      });
+      map.addControl(new CustomControl());
+    }
+  ", jsonlite::toJSON(sorted_zones)))
+
+map
+```
+
+## Zone Summary
+
+```{r zone_table}
+if (nrow(planet_zones) > 0) {
+  zone_summary <- planet_zones %>%
+    select(spawnZone, zoneType, x, y, x2, y2, r) %>%
+    arrange(spawnZone)
+
+  DT::datatable(zone_summary,
+                filter = "top",
+                options = list(
+                  pageLength = 15,
+                  dom = "ftip"
+                ),
+                rownames = FALSE)
+} else {
+  cat("No spawn zones found for this planet.")
+}
+```
+
+## Static Spawn Summary
+
+```{r static_table}
+if (nrow(planet_static) > 0) {
+  static_summary <- planet_static %>%
+    group_by(mobile) %>%
+    summarise(count = n(), .groups = "drop") %>%
+    arrange(desc(count))
+
+  DT::datatable(static_summary,
+                filter = "top",
+                options = list(
+                  pageLength = 15,
+                  dom = "ftip"
+                ),
+                rownames = FALSE)
+} else {
+  cat("No static spawns found for this planet.")
+}
+```

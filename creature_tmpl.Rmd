@@ -24,6 +24,7 @@ lair_mobiles <- read_csv("lair_mobiles.csv", show_col_types = FALSE)
 lairs <- read_csv("lairs.csv", show_col_types = FALSE)
 lair_spawn_groups <- read_csv("lair_spawn_groups.csv", show_col_types = FALSE)
 static_spawns <- read_csv("static_spawns.csv", show_col_types = FALSE)
+zones <- read_csv("zones.csv", show_col_types = FALSE)
 
 creature_data <- creatures %>% filter(creatureName == params$creature_name)
 ```
@@ -118,7 +119,7 @@ if (nrow(creature_lairs) == 0) {
 
 ## Spawn Locations
 
-These are the spawn groups where this creature's lairs can appear.
+These are the spawn zones where this creature's lairs can appear, with geographic coordinates.
 
 ```{r spawn_groups}
 creature_lairs_list <- lair_mobiles %>%
@@ -127,8 +128,10 @@ creature_lairs_list <- lair_mobiles %>%
 
 spawn_locations <- lair_spawn_groups %>%
   filter(lairTemplateName %in% creature_lairs_list) %>%
-  select(spawnGroupName, lairTemplateName, minDifficulty, maxDifficulty,
-         numberToSpawn, weighting, size)
+  left_join(zones, by = c("spawnGroupName" = "spawnZone")) %>%
+  select(planet, spawnGroupName, lairTemplateName, zoneType,
+         x, y, x2, y2, r,
+         minDifficulty, maxDifficulty, numberToSpawn, weighting, size)
 
 if (nrow(spawn_locations) == 0) {
   cat("This creature's lairs do not appear in any spawn groups.")
@@ -138,7 +141,8 @@ if (nrow(spawn_locations) == 0) {
             options = list(
               dom = "t",
               pageLength = 50,
-              autoWidth = FALSE
+              autoWidth = FALSE,
+              scrollX = TRUE
             ),
             rownames = FALSE)
 }
@@ -151,7 +155,7 @@ These are fixed spawn points for this creature.
 ```{r static}
 creature_static <- static_spawns %>%
   filter(mobile == params$creature_name) %>%
-  select(zone_id, x, y, z, respawn_time, heading = header, parent_id)
+  select(planet = zone_id, x, y, z, respawn_time, heading = header, parent_id)
 
 if (nrow(creature_static) == 0) {
   cat("This creature has no static spawn points.")

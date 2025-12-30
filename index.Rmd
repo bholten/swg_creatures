@@ -29,7 +29,7 @@ This is raw data from the Core3 mobile scripts. It is very lightly cleaned and i
 
 - [Extinct Creatures](extinct_creatures.html)  - creatures that do not appear in spawn groups or static spawns
 - [Creature Index](creatures_index.html) - individual creature reports with unified data from all tables
-- Work in Progress - Spawn Zone Maps
+- [Spawn Zone Maps](maps_index.html) - interactive maps showing spawn zones and static spawns per planet
 - Work in Progress - Data Workbench
 - Work in Progress - Loot Tables
 - Work in Progress - DNA Samples
