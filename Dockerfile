@@ -5,6 +5,7 @@ RUN apt-get update && apt-get install -y \
     lua5.3 liblua5.3-dev luarocks pandoc \
     libudunits2-dev \
     libproj-dev proj-bin \
+    gdal-bin libgdal-dev \
     && rm -rf /var/lib/apt/lists/*
 
 RUN luarocks install luafilesystem
