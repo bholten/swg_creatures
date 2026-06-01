@@ -3,6 +3,8 @@ FROM rocker/r-ver:4.2.3
 RUN apt-get update && apt-get install -y \
     libz-dev git \
     lua5.3 liblua5.3-dev luarocks pandoc \
+    libudunits2-dev \
+    libproj-dev proj-bin \
     && rm -rf /var/lib/apt/lists/*
 
 RUN luarocks install luafilesystem
