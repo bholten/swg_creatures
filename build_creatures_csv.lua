@@ -863,7 +863,7 @@ local planet_region_dir = "submodules/Core3/MMOCoreORB/bin/scripts/managers/plan
 function build_planet_regions()
    execute_scripts(planet_region_dir)
 
-   local headers = "planet,name,spawnZone,zoneType,x,y,x2,y2,r,r1,r2,zoneBitmask"
+   local headers = "planet,name,spawnZone,zoneType,x,y,x2,y2,r,r1,r2,zoneBitmask,maxSpawnLimit"
 
    local results = {headers}
 
@@ -934,13 +934,20 @@ function build_planet_regions()
      local results = {}
 
       local spawn_zones = entry[6]
+      -- Region entry layout: {name, x, y, shape, bitmask, {spawnGroups}, maxSpawnLimit}
+      -- maxSpawnLimit (entry[7]) is the region-wide concurrent lair cap that
+      -- governs spawn density; non-SPAWNAREA regions omit it.
+      local max_spawn_limit = entry[7]
+      if max_spawn_limit == nil then
+         max_spawn_limit = ""
+      end
 
       if spawn_zones ~= nil then
          for _, z in ipairs(spawn_zones) do
-            table.insert(results, {planet, name, z, zoneType, x, y, x2, y2, r, r1, r2, bitmask_str})
+            table.insert(results, {planet, name, z, zoneType, x, y, x2, y2, r, r1, r2, bitmask_str, max_spawn_limit})
          end
       else
-         table.insert(results, {planet, name, "", zoneType, x, y, x2, y2, r, r1, r2, bitmask_str})
+         table.insert(results, {planet, name, "", zoneType, x, y, x2, y2, r, r1, r2, bitmask_str, max_spawn_limit})
       end
 
       return results

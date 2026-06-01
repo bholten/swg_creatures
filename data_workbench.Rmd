@@ -347,12 +347,25 @@ async function initDatabase() {
 function loadTable(tableName, rows) {
   if (!rows || rows.length === 0) return;
 
-  // Get column names and types from first row
-  var columns = Object.keys(rows[0]);
+  // jsonlite omits keys whose value is NA when encoding row-oriented dataframes,
+  // so the first row may be missing columns that later rows have. Walk every row
+  // to collect the full column set and the first non-null sample for type inference.
+  var columns = [];
+  var samples = {};
+  rows.forEach(function(row) {
+    Object.keys(row).forEach(function(col) {
+      if (!(col in samples)) {
+        columns.push(col);
+        samples[col] = null;
+      }
+      if (samples[col] === null && row[col] !== null && row[col] !== undefined) {
+        samples[col] = row[col];
+      }
+    });
+  });
 
-  // Infer types from data
   var colDefs = columns.map(function(col) {
-    var sampleVal = rows[0][col];
+    var sampleVal = samples[col];
     var type = 'TEXT';
     if (typeof sampleVal === 'number') {
       type = Number.isInteger(sampleVal) ? 'INTEGER' : 'REAL';

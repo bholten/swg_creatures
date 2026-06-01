@@ -33,6 +33,14 @@ if (planet_data_name == "yavin4") {
   zones_planet_name <- planet_data_name
 }
 
+# Second-tier spawn analysis: expected abundance & concentration of each
+# creature per region, plus overlapping-zone intersection pieces.
+source("spawn_analysis.R")
+spawn_model <- build_planet_spawn_model(
+  zones_planet_name,
+  data = list(zones = zones, groups = lair_spawn_groups, mobiles = lair_mobiles)
+)
+
 # Map image paths - relative to html/maps/ output directory
 image_map <- list(
   corellia = "Corellia.jpg",
@@ -53,8 +61,14 @@ map_image <- image_map[[planet_data_name]]
 planet_zones <- zones %>%
   filter(planet == zones_planet_name, !is.na(spawnZone), spawnZone != "")
 
-planet_static <- static_spawns %>%
+planet_static_all <- static_spawns %>%
   filter(zone_id == planet_data_name)
+
+# Interior spawns (parent_id != 0) live inside cells (caves, buildings) and
+# their x/z/y are relative to that cell, not the world. Placing them on the
+# planet map produces a bogus cluster near (0,0), so draw world spawns only.
+planet_static <- planet_static_all %>% filter(parent_id == 0)
+n_interior_excluded <- nrow(planet_static_all) - nrow(planet_static)
 
 # Get creatures for each spawn zone (truncated for popup)
 get_creatures_for_zone <- function(spawn_zone) {
@@ -101,6 +115,8 @@ zone_data_for_sidebar <- lapply(seq_len(nrow(planet_zones)), function(i) {
     x2 = if (!is.na(zone$x2)) zone$x2 else NULL,
     y2 = if (!is.na(zone$y2)) zone$y2 else NULL,
     r = if (!is.na(zone$r)) zone$r else NULL,
+    r1 = if (!is.na(zone$r1)) zone$r1 else NULL,
+    r2 = if (!is.na(zone$r2)) zone$r2 else NULL,
     creatures = get_all_creatures_for_zone(zone$spawnZone)
   )
 })
@@ -124,12 +140,28 @@ This interactive map shows spawn zones and static spawn points for `r planet_dis
 - **Hover** over zones to see zone name
 - **Click** on a zone to see full details in the sidebar (including all creatures)
 - Use the **layer control** (top right) to toggle visibility
-- **Search** for creatures below - zones without matching creatures will be hidden
+- **Search** for creatures below - zones without matching creatures will be hidden, and the **creature finder** ranks where to find them by abundance and concentration (accounting for zone overlap)
 
 <div id="creature-search-container">
 <input type="text" id="creature-search" placeholder="Search creatures (e.g., rancor, *krayt*, gorax...)" />
 <span id="search-results-count"></span>
 <button id="clear-search" onclick="clearCreatureSearch()">Clear</button>
+</div>
+
+<div id="creature-finder">
+<div id="finder-header">
+  <strong>Where to find <span id="finder-creature">—</span></strong>
+  <span id="finder-sort">
+    Rank by:
+    <button class="finder-sort-btn active" data-metric="concentration" onclick="setFinderMetric('concentration')">Concentration (easiest to find)</button>
+    <button class="finder-sort-btn" data-metric="abundance" onclick="setFinderMetric('abundance')">Abundance (most spawns)</button>
+  </span>
+</div>
+<div id="finder-note">Search a creature above to rank spawn zones and zone overlaps by expected <em>abundance</em> (how many you'll find) and <em>concentration</em> (what fraction of nearby lairs are this creature). Click a row to fly the map there.</div>
+<table id="finder-table" style="display:none">
+  <thead><tr><th>Location</th><th>Zones</th><th class="num">Abundance</th><th class="num">Concentration</th></tr></thead>
+  <tbody></tbody>
+</table>
 </div>
 
 <style>
@@ -139,6 +171,27 @@ This interactive map shows spawn zones and static spawn points for `r planet_dis
   background: #f5f5f5;
   border-radius: 5px;
 }
+#creature-finder {
+  margin: 15px 0;
+  padding: 10px;
+  background: #f0f6ff;
+  border: 1px solid #cfe0ff;
+  border-radius: 5px;
+}
+#finder-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+#finder-note { color: #555; font-size: 13px; margin: 6px 0; }
+.finder-sort-btn {
+  padding: 4px 10px; margin-left: 4px; cursor: pointer; font-size: 12px;
+  background: #e0e8f5; border: 1px solid #b8cdf0; border-radius: 4px;
+}
+.finder-sort-btn.active { background: #3388ff; color: #fff; border-color: #3388ff; }
+#finder-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+#finder-table th, #finder-table td { text-align: left; padding: 5px 8px; border-bottom: 1px solid #e0e0e0; }
+#finder-table th.num, #finder-table td.num { text-align: right; }
+#finder-table tbody tr { cursor: pointer; }
+#finder-table tbody tr:hover { background: #e8f0ff; }
+#finder-table .overlap-row td:first-child { font-style: italic; color: #2a5; }
+.finder-bar { display: inline-block; height: 10px; background: #3388ff; border-radius: 2px; vertical-align: middle; margin-left: 6px; }
 #creature-search {
   width: 400px;
   padding: 8px 12px;
@@ -232,6 +285,8 @@ function showZoneSidebar(zoneName) {
   var coords = '';
   if (data.type === 'circle') {
     coords = 'Center: (' + Math.round(data.x) + ', ' + Math.round(data.y) + '), Radius: ' + Math.round(data.r);
+  } else if (data.type === 'ring') {
+    coords = 'Center: (' + Math.round(data.x) + ', ' + Math.round(data.y) + '), Inner: ' + Math.round(data.r1) + ', Outer: ' + Math.round(data.r2);
   } else {
     coords = '(' + Math.round(data.x) + ', ' + Math.round(data.y) + ') to (' + Math.round(data.x2) + ', ' + Math.round(data.y2) + ')';
   }
@@ -299,16 +354,14 @@ function filterZonesByCreature(searchTerm) {
 
   // Show/hide zones on the map using stored layer references
   Object.keys(zoneLayers).forEach(function(zoneName) {
-    var layer = zoneLayers[zoneName];
-    if (matchingZones.includes(zoneName)) {
-      if (!leafletMapGlobal.hasLayer(layer)) {
-        leafletMapGlobal.addLayer(layer);
+    var show = matchingZones.includes(zoneName);
+    zoneLayers[zoneName].forEach(function(layer) {
+      if (show) {
+        if (!leafletMapGlobal.hasLayer(layer)) leafletMapGlobal.addLayer(layer);
+      } else {
+        if (leafletMapGlobal.hasLayer(layer)) leafletMapGlobal.removeLayer(layer);
       }
-    } else {
-      if (leafletMapGlobal.hasLayer(layer)) {
-        leafletMapGlobal.removeLayer(layer);
-      }
-    }
+    });
   });
 
   // Update checkboxes in layer control
@@ -330,10 +383,9 @@ function showAllZonesSearch() {
 
   // Use stored layer references to show all zones
   Object.keys(zoneLayers).forEach(function(zoneName) {
-    var layer = zoneLayers[zoneName];
-    if (!leafletMapGlobal.hasLayer(layer)) {
-      leafletMapGlobal.addLayer(layer);
-    }
+    zoneLayers[zoneName].forEach(function(layer) {
+      if (!leafletMapGlobal.hasLayer(layer)) leafletMapGlobal.addLayer(layer);
+    });
   });
 
   // Update checkboxes
@@ -362,6 +414,7 @@ document.addEventListener('DOMContentLoaded', function() {
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(function() {
         filterZonesByCreature(searchInput.value);
+        if (typeof updateCreatureFinder === 'function') updateCreatureFinder(searchInput.value);
       }, 200);
     });
   }
@@ -369,6 +422,171 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 ", jsonlite::toJSON(zone_data_for_sidebar, auto_unbox = TRUE))
 cat(script_content)
+```
+
+```{r spawn_finder_script, results='asis', echo=FALSE}
+# Embed the per-planet spawn model and the client-side creature finder.
+strip_prefix <- function(x) sub("^@[^:]*:", "", x)
+
+regions_json <- if (nrow(spawn_model$regions) > 0) {
+  jsonlite::toJSON(spawn_model$regions %>%
+    transmute(id = region_id, name = strip_prefix(name),
+              cx = round(cx, 1), cy = round(cy, 1), type = zoneType,
+              isWorld = is_world,
+              limit = as.numeric(maxSpawnLimit), etot = round(expected_total, 2)),
+    dataframe = "rows", auto_unbox = TRUE)
+} else "[]"
+
+rc_json <- if (nrow(spawn_model$region_creature) > 0) {
+  jsonlite::toJSON(spawn_model$region_creature %>%
+    transmute(r = region_id, c = creatureName, a = round(abundance, 3)),
+    dataframe = "rows", auto_unbox = TRUE)
+} else "[]"
+
+pieces_json <- if (nrow(spawn_model$pieces) > 0) {
+  jsonlite::toJSON(spawn_model$pieces %>%
+    transmute(ids = member_region_ids, cx = round(cx, 1), cy = round(cy, 1),
+              n = n_overlap, total = round(combined_expected_total, 2)),
+    dataframe = "rows", auto_unbox = TRUE)
+} else "[]"
+
+finder_js <- sprintf("
+<script>
+var spawnRegions = %s;   // [{id,name,cx,cy,type,isWorld,limit,etot}]
+var spawnRC = %s;        // [{r,c,a}]
+var spawnPieces = %s;    // [{ids:[...],cx,cy,n,total}]
+
+// Index region metadata by id and build creature -> {region_id: abundance}.
+var regionById = {};
+spawnRegions.forEach(function(reg) { regionById[reg.id] = reg; });
+var creatureAbundance = {};
+spawnRC.forEach(function(row) {
+  if (!creatureAbundance[row.c]) creatureAbundance[row.c] = {};
+  creatureAbundance[row.c][row.r] = row.a;
+});
+var allCreatureNames = Object.keys(creatureAbundance);
+
+var finderMetric = 'concentration';
+var finderLastQuery = '';
+
+// The creatures people hunt are rare, so sub-1%% concentrations carry the real
+// signal. Show 2 significant figures below the readable-decimal range instead
+// of rounding rare cases to 0.
+function formatPct(frac) {
+  var p = frac * 100;
+  if (p <= 0) return '0%%';
+  if (p >= 1) return p.toFixed(1) + '%%';
+  return parseFloat(p.toPrecision(2)) + '%%';
+}
+function formatAbund(v) {
+  if (v <= 0) return '0';
+  if (v >= 10) return v.toFixed(0);
+  if (v >= 1) return v.toFixed(1);
+  return String(parseFloat(v.toPrecision(2)));
+}
+
+function setFinderMetric(metric) {
+  finderMetric = metric;
+  document.querySelectorAll('.finder-sort-btn').forEach(function(b) {
+    b.classList.toggle('active', b.getAttribute('data-metric') === metric);
+  });
+  updateCreatureFinder(finderLastQuery);
+}
+
+function updateCreatureFinder(query) {
+  finderLastQuery = query || '';
+  var table = document.getElementById('finder-table');
+  var note = document.getElementById('finder-note');
+  var label = document.getElementById('finder-creature');
+  var tbody = table.querySelector('tbody');
+  tbody.innerHTML = '';
+
+  var q = finderLastQuery.trim().toLowerCase().replace(/[*?]/g, '');
+  if (!q) {
+    label.textContent = '—';
+    table.style.display = 'none';
+    note.style.display = 'block';
+    return;
+  }
+
+  // Aggregate abundance over every creature whose name contains the query.
+  var matched = allCreatureNames.filter(function(c) { return c.toLowerCase().indexOf(q) !== -1; });
+  var ab = {};   // region_id -> summed abundance
+  matched.forEach(function(c) {
+    var m = creatureAbundance[c];
+    Object.keys(m).forEach(function(rid) { ab[rid] = (ab[rid] || 0) + m[rid]; });
+  });
+
+  label.textContent = query + (matched.length > 1 ? ' (' + matched.length + ' creatures)' : '');
+
+  if (Object.keys(ab).length === 0) {
+    note.textContent = 'No spawn-zone data for \"' + query + '\" on this planet.';
+    note.style.display = 'block';
+    table.style.display = 'none';
+    return;
+  }
+
+  var rows = [];
+  // Single regions
+  Object.keys(ab).forEach(function(rid) {
+    var reg = regionById[rid];
+    if (!reg) return;
+    var abundance = ab[rid];
+    rows.push({
+      label: reg.name + (reg.isWorld ? ' (planet-wide)' : ''),
+      zones: 1, overlap: false, cx: reg.cx, cy: reg.cy,
+      abundance: abundance,
+      concentration: reg.etot > 0 ? abundance / reg.etot : 0
+    });
+  });
+  // Zone overlaps (intersection pieces)
+  spawnPieces.forEach(function(pc) {
+    var sum = 0, names = [], any = false;
+    pc.ids.forEach(function(rid) {
+      if (ab[rid] != null) { sum += ab[rid]; any = true; }
+      if (regionById[rid]) names.push(regionById[rid].name);
+    });
+    if (!any) return;
+    rows.push({
+      label: names.join(' ∩ '),
+      zones: pc.n, overlap: true, cx: pc.cx, cy: pc.cy,
+      abundance: sum,
+      concentration: pc.total > 0 ? sum / pc.total : 0
+    });
+  });
+
+  rows.sort(function(a, b) { return b[finderMetric] - a[finderMetric]; });
+  rows = rows.slice(0, 25);
+
+  var maxVal = rows.length ? rows[0][finderMetric] : 1;
+  rows.forEach(function(row) {
+    var tr = document.createElement('tr');
+    if (row.overlap) tr.className = 'overlap-row';
+    var barW = Math.round(60 * (row[finderMetric] / (maxVal || 1)));
+    tr.innerHTML =
+      '<td>' + row.label + '</td>' +
+      '<td>' + (row.overlap ? row.zones + '×' : 'zone') + '</td>' +
+      '<td class=\"num\">' + formatAbund(row.abundance) +
+        (finderMetric === 'abundance' ? '<span class=\"finder-bar\" style=\"width:' + barW + 'px\"></span>' : '') + '</td>' +
+      '<td class=\"num\">' + formatPct(row.concentration) +
+        (finderMetric === 'concentration' ? '<span class=\"finder-bar\" style=\"width:' + barW + 'px\"></span>' : '') + '</td>';
+    tr.onclick = function() {
+      if (typeof leafletMapGlobal !== 'undefined' && leafletMapGlobal) {
+        leafletMapGlobal.setView([row.cy, row.cx], 1);
+        if (window._finderMarker) leafletMapGlobal.removeLayer(window._finderMarker);
+        window._finderMarker = L.circleMarker([row.cy, row.cx],
+          { radius: 12, color: '#ff9500', weight: 3, fill: false }).addTo(leafletMapGlobal);
+      }
+    };
+    tbody.appendChild(tr);
+  });
+
+  note.style.display = 'none';
+  table.style.display = 'table';
+}
+</script>
+", regions_json, rc_json, pieces_json)
+cat(finder_js)
 ```
 
 ```{r map, fig.width=10, fig.height=10}
@@ -422,7 +640,10 @@ if (nrow(circle_zones) > 0) {
         popup = popup_content,
         label = zone$spawnZone,
         group = zone$spawnZone,
-        layerId = zone$spawnZone
+        # layerId must be globally unique: duplicate ids make Leaflet drop the
+        # earlier shape, so same-named regions would not all draw. Keep `group`
+        # as the zone name so duplicates still share one layer-control toggle.
+        layerId = paste0("circle_", i)
       )
   }
 }
@@ -457,15 +678,54 @@ if (nrow(rect_zones) > 0) {
         popup = popup_content,
         label = zone$spawnZone,
         group = zone$spawnZone,
-        layerId = zone$spawnZone
+        layerId = paste0("rect_", i)
+      )
+  }
+}
+
+# Add ring zones (e.g. "medium newbie" rings around starter cities). A ring is
+# an annulus between an inner radius (r1) and outer radius (r2); Leaflet has no
+# annulus primitive, so draw a filled outer circle plus an unfilled inner circle
+# to mark the hole. Both shapes share the zone-name group so they toggle as one.
+ring_zones <- planet_zones %>% filter(zoneType == "ring", !is.na(r1), !is.na(r2))
+if (nrow(ring_zones) > 0) {
+  for (i in 1:nrow(ring_zones)) {
+    zone <- ring_zones[i, ]
+    creatures <- get_creatures_for_zone(zone$spawnZone)
+    zone_names <- c(zone_names, zone$spawnZone)
+
+    popup_content <- paste0(
+      "<b>", zone$spawnZone, "</b><br>",
+      "<b>Type:</b> Ring<br>",
+      "<b>Center:</b> (", round(zone$x), ", ", round(zone$y), ")<br>",
+      "<b>Inner radius:</b> ", round(zone$r1), "<br>",
+      "<b>Outer radius:</b> ", round(zone$r2), "<br>",
+      "<b>Creatures:</b> ", creatures, "<br><br>",
+      "<button onclick=\"showZoneSidebar('", zone$spawnZone, "')\" style=\"cursor:pointer;padding:5px 10px;\">View All Creatures</button>"
+    )
+
+    map <- map %>%
+      addCircles(
+        lng = zone$x, lat = zone$y, radius = zone$r2,
+        color = "#3388ff", fillColor = "#3388ff", fillOpacity = 0.2, weight = 2,
+        popup = popup_content, label = zone$spawnZone,
+        group = zone$spawnZone, layerId = paste0("ring_outer_", i)
+      ) %>%
+      addCircles(
+        lng = zone$x, lat = zone$y, radius = zone$r1,
+        color = "#3388ff", fillColor = "#ffffff", fillOpacity = 0.0, weight = 1,
+        group = zone$spawnZone, layerId = paste0("ring_inner_", i)
       )
   }
 }
 
 # Add static spawn markers
+n_static_sampled <- 0
 if (nrow(planet_static) > 0) {
   # Limit markers if there are too many (for performance)
   static_to_show <- if (nrow(planet_static) > 500) {
+    set.seed(42)  # stable subset across renders
+    n_static_sampled <- 500
     planet_static %>% sample_n(500)
   } else {
     planet_static
@@ -516,10 +776,14 @@ map <- map %>%
       // Store map reference globally for search functionality
       leafletMapGlobal = map;
 
-      // Store references to all zone layers for show/hide functionality
+      // Store references to all zone layers for show/hide functionality.
+      // A single zone name can map to several shapes (duplicate-named regions
+      // and the two circles of a ring), so each name holds an array of layers.
       map.eachLayer(function(layer) {
         if (layer.options && layer.options.group && zoneDataGlobal[layer.options.group]) {
-          zoneLayers[layer.options.group] = layer;
+          var g = layer.options.group;
+          if (!zoneLayers[g]) zoneLayers[g] = [];
+          zoneLayers[g].push(layer);
         }
       });
 
@@ -537,8 +801,9 @@ map <- map %>%
       showBtn.onclick = function() {
         // Use stored layer references
         Object.keys(zoneLayers).forEach(function(name) {
-          var layer = zoneLayers[name];
-          if (!map.hasLayer(layer)) map.addLayer(layer);
+          zoneLayers[name].forEach(function(layer) {
+            if (!map.hasLayer(layer)) map.addLayer(layer);
+          });
         });
         // Update checkboxes in layer control
         var checkboxes = document.querySelectorAll('.leaflet-control-layers-overlays input');
@@ -559,8 +824,9 @@ map <- map %>%
       hideBtn.onclick = function() {
         // Use stored layer references
         Object.keys(zoneLayers).forEach(function(name) {
-          var layer = zoneLayers[name];
-          if (map.hasLayer(layer)) map.removeLayer(layer);
+          zoneLayers[name].forEach(function(layer) {
+            if (map.hasLayer(layer)) map.removeLayer(layer);
+          });
         });
         // Update checkboxes in layer control
         var checkboxes = document.querySelectorAll('.leaflet-control-layers-overlays input');
@@ -580,6 +846,23 @@ map <- map %>%
   ", jsonlite::toJSON(sorted_zones)))
 
 map
+```
+
+```{r map_notes, results='asis', echo=FALSE}
+notes <- c()
+if (n_interior_excluded > 0) {
+  notes <- c(notes, sprintf(
+    "%d interior static spawn(s) (inside caves/buildings) are omitted from the map because their coordinates are relative to the cell, not the world.",
+    n_interior_excluded))
+}
+if (n_static_sampled > 0) {
+  notes <- c(notes, sprintf(
+    "Showing a random sample of %d static spawns (of %d world spawns) for performance; the Static Spawn Summary below counts all of them.",
+    n_static_sampled, nrow(planet_static)))
+}
+if (length(notes) > 0) {
+  cat(paste0("> **Note:** ", notes, collapse = "\n>\n"), "\n")
+}
 ```
 
 ## Zone Summary
